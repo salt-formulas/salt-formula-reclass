@@ -1,0 +1,17 @@
+{%- set node = salt['pillar.get']('reclass:storage:node:'+node_name) %}
+classes:
+{%- for class in node.classes %}
+- {{ class }}
+{%- endfor %}
+parameters:
+  _param:
+  {%- for param_name, param_value in node.params.iteritems() %}
+    {{ param_name }}: {{ param_value }}
+  {%- endfor %}
+  {{ node.get('kernel', 'linux') }}:
+    system:
+      name: {{ node.name }}
+      domain: {{ node.domain }}
+  {%- for param_name, param_value in node.get("parameters", {}).iteritems() %}
+  {{ param_name }}: {{ param_value }}
+  {%- endfor %}

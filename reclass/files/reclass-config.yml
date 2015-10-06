@@ -1,0 +1,11 @@
+{%- from "reclass/map.jinja" import storage with context %}
+storage_type: {{ storage.storage_type }}
+pretty_print: True
+output: {{ storage.get('output', 'json') }}
+inventory_base_uri: {{ storage.base_dir }}
+{%- if storage.class_mappings is defined %}
+class_mappings:
+{%- for mapping in storage.class_mappings %}
+- {{ mapping.target }} {{ mapping.class }}
+{%- endfor %}
+{%- endif %}

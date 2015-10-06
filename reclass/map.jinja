@@ -1,0 +1,20 @@
+{%- set storage = salt['grains.filter_by']({
+    'Debian': {
+        'base_dir': '/etc/reclass/base',
+        'pkgs': ['reclass', 'python-reclass'],
+        'data_source': {
+            'engine': 'local'
+        },
+        'storage_type': 'yaml_fs',
+        'version': '1.4.1',
+    },
+    'RedHat': {
+        'base_dir': '/etc/reclass/base',
+        'pkgs': ['reclass', 'python-reclass'],
+        'data_source': {
+            'engine': 'local'
+        },
+        'storage_type': 'yaml_fs',
+        'version': '1.4.1',
+    },
+}, grain='os_family', merge=salt['pillar.get']('reclass:storage')) %}
