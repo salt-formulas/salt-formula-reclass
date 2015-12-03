@@ -12,6 +12,8 @@ parameters:
     system:
       name: {{ node.name }}
       domain: {{ node.domain }}
+      cluster: {{ node.get('cluster', 'default') }}
+      environment: {{ node.get('environment', 'prd') }}
   {%- for param_name, param_value in node.get("parameters", {}).iteritems() %}
   {{ param_name }}: {{ param_value }}
   {%- endfor %}

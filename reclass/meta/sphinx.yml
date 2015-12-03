@@ -1,0 +1,9 @@
+doc:
+  name: reclass
+  description: reclass is an “external node classifier” (ENC) as can be used with automation tools, such as Puppet, Salt, and Ansible.
+  role:
+    doc:
+      name: doc
+      param:
+        version:
+          value: {{ salt['cmd.run']('reclass --version') }}
