@@ -1,5 +1,7 @@
 applications:
 - reclass
+classes:
+- service.reclass.support
 parameters:
   reclass:
     storage:
