@@ -4,10 +4,12 @@ classes:
 - {{ class }}
 {%- endfor %}
 parameters:
+  {%- if node.params is defined %}
   _param:
   {%- for param_name, param_value in node.params.iteritems() %}
     {{ param_name }}: {{ param_value }}
   {%- endfor %}
+  {%- endif %}
   {{ node.get('kernel', 'linux') }}:
     system:
       name: {{ node.name }}
