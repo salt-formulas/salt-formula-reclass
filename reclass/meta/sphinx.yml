@@ -1,9 +1,16 @@
+{%- from "reclass/map.jinja" import storage with context %}
 doc:
-  name: reclass
+  name: Reclass
   description: reclass is an external node classifier (ENC) used with automation tools, such as Puppet, Salt, and Ansible.
   role:
-    doc:
-      name: doc
+    storage:
+      name: storage
       param:
         version:
           value: {{ salt['cmd.run']('reclass --version') }}
+        {%- if storage.data_source.engine == "git" %}
+        source_repository:
+          value: {{ storage.data_source.address }}
+        source_revision:
+          value: {{ storage.data_source.branch }}
+        {%- endif %}
