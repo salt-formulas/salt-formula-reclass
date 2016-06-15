@@ -1,0 +1,8 @@
+name: reclass
+os: Debian, RedHat
+os_family: Debian, RedHat
+version: 201606
+release: 1
+summary: Reclass salt formula
+description: Configure Reclass hierarchical data storage.
+top_level_dir: reclass
