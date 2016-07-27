@@ -91,7 +91,7 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
 
     with open(file_path, 'w') as node_file:
         node_file.write(yaml.dump(node_meta, default_flow_style=False) )
-#    ret[new.get('path_with_namespace')] = new
+
     return node_get(name)
 
 def node_delete(name, **kwargs):
@@ -202,4 +202,6 @@ def node_update(name, classes=None, parameters=None, **connection_args):
     '''
     node = node_get(name=name)
     if not node.has_key('Error'):
-      node = node[name.split("/")[1]]
+        node = node[name.split("/")[1]]
+    else:
+        return {'Error': 'Error in retrieving node'}
