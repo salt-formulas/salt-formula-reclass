@@ -7,8 +7,13 @@ reclass_data_source:
   git.latest:
   - name: {{ storage.data_source.address }}
   - target: {{ storage.base_dir }}
-  - rev: {{ storage.data_source.branch }}
   - reload_pillar: True
+  {%- if grains.saltversioninfo.0 >= 2015.8 %}
+  - rev: HEAD
+  - branch: {{ storage.data_source.branch }}
+  {%- else %}
+  - rev: {{ storage.data_source.branch }}
+  {%- endif %}
 
 {%- endif %}
 
