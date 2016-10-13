@@ -19,7 +19,7 @@ reclass_data_source:
 {%- if storage.data_source.engine == "local" %}
 
 reclass_data_dir:
-  file.managed:
+  file.directory:
   - name: {{ storage.base_dir }}
   - mode: 700
 
