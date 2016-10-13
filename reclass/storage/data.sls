@@ -8,12 +8,11 @@ reclass_data_source:
   - name: {{ storage.data_source.address }}
   - target: {{ storage.base_dir }}
   - reload_pillar: True
-  {%- if grains.saltversioninfo.0 >= 2015.8 %}
-  - rev: HEAD
-  - branch: {{ storage.data_source.branch }}
-  {%- else %}
-  - rev: {{ storage.data_source.branch }}
+  - rev: {{ storage.data_source.revision|default(storage.data_source.branch) }}
+  {%- if grains.saltversion >= "2015.8.0" %}
+  - branch: {{ storage.data_source.branch|default(storage.data_source.revision) }}
   {%- endif %}
+  - force_reset: {{ storage.data_source.force_reset|default(False) }}
 
 {%- endif %}
 
