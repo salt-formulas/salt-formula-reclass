@@ -1,6 +1,9 @@
 {%- from "reclass/map.jinja" import storage with context %}
 {%- if storage.enabled %}
 
+include:
+  - reclass.storage.data
+
 {{ storage.base_dir }}/nodes/_generated:
   file.directory
 
@@ -14,8 +17,8 @@
   - template: jinja
   - defaults:
       node_name: "{{ node_name }}"
-  - requires:
-    - git: {{ storage.data_source.address }}
+  - require:
+    - file: reclass_data_dir
 
 {%- endfor %}
 

@@ -3,7 +3,7 @@
 
 {%- if storage.data_source.engine == "git" %}
 
-reclass_data_source:
+reclass_git_data_dir:
   git.latest:
   - name: {{ storage.data_source.address }}
   - target: {{ storage.base_dir }}
@@ -16,13 +16,13 @@ reclass_data_source:
 
 {%- endif %}
 
-{%- if storage.data_source.engine == "local" %}
-
 reclass_data_dir:
   file.directory:
   - name: {{ storage.base_dir }}
   - mode: 700
-
+{%- if storage.data_source.engine == "git" %}
+  - require:
+    - git: reclass_git_data_dir
 {%- endif %}
 
 {%- endif %}
