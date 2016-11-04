@@ -1,9 +1,6 @@
 {%- from "reclass/map.jinja" import storage with context %}
 {%- if storage.enabled %}
 
-include:
-  - reclass.storage.data
-
 {{ storage.base_dir }}/nodes/_generated:
   file.directory
 
