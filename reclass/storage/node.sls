@@ -17,8 +17,6 @@ include:
   - template: jinja
   - defaults:
       node_name: "{{ node_name }}"
-  - require:
-    - file: reclass_data_dir
 
 {%- endfor %}
 
