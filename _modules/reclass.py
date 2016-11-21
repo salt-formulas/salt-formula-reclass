@@ -9,12 +9,15 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
+import six
 import yaml
+import json
 
 LOG = logging.getLogger(__name__)
 
 RECLASS_NODES_DIR = "/srv/salt/reclass/nodes"
 RECLASS_CLASSES_DIR = "/srv/salt/reclass/classes"
+
 
 def __virtual__():
     '''
@@ -61,12 +64,18 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
     if classes == None:
         meta_classes = []
     else:
-        meta_classes = classes
+        if isinstance(classes, six.string_types):
+            meta_classes = json.loads(classes)
+        else:
+            meta_classes = classes
 
     if parameters == None:
         meta_parameters = {}
     else:
-        meta_parameters = parameters
+        if isinstance(parameters, six.string_types):
+            meta_parameters = json.loads(parameters)
+        else:
+            meta_parameters = parameters
 
     node_meta = {
         'classes': meta_classes,
@@ -90,7 +99,7 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
         file_path = os.path.join(RECLASS_NODES_DIR, path, name + '.yml')
 
     with open(file_path, 'w') as node_file:
-        node_file.write(yaml.dump(node_meta, default_flow_style=False) )
+        node_file.write(yaml.safe_dump(node_meta, default_flow_style=False))
 
     return node_get(name)
 
