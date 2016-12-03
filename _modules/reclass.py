@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Module for handling reclass files.
+Module for handling reclass metadata models.
 
 '''
 
@@ -13,10 +13,11 @@ import six
 import yaml
 import json
 
-LOG = logging.getLogger(__name__)
+from reclass import get_storage, output
+from reclass.core import Core
+from reclass.config import find_and_read_configfile
 
-RECLASS_NODES_DIR = "/srv/salt/reclass/nodes"
-RECLASS_CLASSES_DIR = "/srv/salt/reclass/classes"
+LOG = logging.getLogger(__name__)
 
 
 def __virtual__():
@@ -27,7 +28,14 @@ def __virtual__():
     return 'reclass'
 
 
-__opts__ = {}
+def _get_nodes_dir():
+    defaults = find_and_read_configfile()
+    return os.path.join(defaults.get('inventory_base_uri'), 'nodes')
+
+
+def _get_classes_dir():
+    defaults = find_and_read_configfile()
+    return os.path.join(defaults.get('inventory_base_uri'), 'classes')
 
 
 def node_create(name, path=None, cluster="default", environment="prd", classes=None, parameters=None, **kwargs):
@@ -94,14 +102,15 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
     LOG.debug(node_meta)
 
     if path == None:
-        file_path = os.path.join(RECLASS_NODES_DIR, name + '.yml')
+        file_path = os.path.join(_get_nodes_dir(), name + '.yml')
     else:
-        file_path = os.path.join(RECLASS_NODES_DIR, path, name + '.yml')
+        file_path = os.path.join(_get_nodes_dir(), path, name + '.yml')
 
     with open(file_path, 'w') as node_file:
         node_file.write(yaml.safe_dump(node_meta, default_flow_style=False))
 
     return node_get(name)
+
 
 def node_delete(name, **kwargs):
     '''
@@ -123,9 +132,9 @@ def node_delete(name, **kwargs):
         return {'Error': 'Unable to retreive node'}
 
     if node[name]['path'] == '':
-        file_path = os.path.join(RECLASS_NODES_DIR, name + '.yml')
+        file_path = os.path.join(_get_nodes_dir(), name + '.yml')
     else:
-        file_path = os.path.join(RECLASS_NODES_DIR, node[name]['path'], name + '.yml')
+        file_path = os.path.join(_get_nodes_dir(), node[name]['path'], name + '.yml')
 
     os.remove(file_path)
 
@@ -166,7 +175,7 @@ def node_list(**connection_args):
     '''
     ret = {}
 
-    for root, sub_folders, files in os.walk(RECLASS_NODES_DIR):
+    for root, sub_folders, files in os.walk(_get_nodes_dir()):
         for file in files:
             file_path = os.path.join(root, file)
             file_content = open(file_path, 'r')
@@ -186,18 +195,19 @@ def node_list(**connection_args):
             name = file.replace('.yml', '')
             host_name = name.split('.')[0]
             domain_name = '.'.join(name.split('.')[1:])
-            path = root.replace(RECLASS_NODES_DIR+'/', '')
+            path = root.replace(_get_nodes_dir()+'/', '')
             ret[name] = {
-              'name': host_name,
-              'domain': domain_name,
-              'cluster': 'default',
-              'environment': 'prd',
-              'path': path,
-              'classes': classes,
-              'parameters': parameters
+                'name': host_name,
+                'domain': domain_name,
+                'cluster': 'default',
+                'environment': 'prd',
+                'path': path,
+                'classes': classes,
+                'parameters': parameters
             }
 
     return ret
+
 
 def node_update(name, classes=None, parameters=None, **connection_args):
     '''
@@ -214,3 +224,35 @@ def node_update(name, classes=None, parameters=None, **connection_args):
         node = node[name.split("/")[1]]
     else:
         return {'Error': 'Error in retrieving node'}
+
+
+def inventory(**connection_args):
+    '''
+    Get all nodes in inventory and their associated services/roles classification.
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.inventory
+    '''
+    defaults = find_and_read_configfile()
+    storage = get_storage(defaults['storage_type'], _get_nodes_dir(), _get_classes_dir())
+    reclass = Core(storage, None)
+    nodes = reclass.inventory()["nodes"]
+    output = {}
+
+    for node in nodes:
+        service_classification = []
+        role_classification = []
+        for service in nodes[node]['parameters']:
+            if service not in ['_param', 'private_keys', 'public_keys', 'known_hosts']:
+                service_classification.append(service)
+                for role in nodes[node]['parameters'][service]:
+                    if role not in ['_support', '_orchestrate', 'common']:
+                        role_classification.append('%s.%s' % (service, role))
+        output[node] = {
+            'roles': role_classification,
+            'services': service_classification,
+        }
+    return output
