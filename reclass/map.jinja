@@ -6,6 +6,7 @@
             'engine': 'local'
         },
         'storage_type': 'yaml_fs',
+        'repeat_replace_symbol': '<<count>>',
         'version': '1.4.1',
     },
     'RedHat': {
@@ -15,6 +16,7 @@
             'engine': 'local'
         },
         'storage_type': 'yaml_fs',
+        'repeat_replace_symbol': '<<count>>',
         'version': '1.4.1',
     },
 }, grain='os_family', merge=salt['pillar.get']('reclass:storage')) %}
