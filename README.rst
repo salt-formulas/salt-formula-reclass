@@ -1,7 +1,7 @@
 
-=======
-reclass
-=======
+===============
+reclass formula
+===============
 
 reclass is an “external node classifier” (ENC) as can be used with automation tools, such as Puppet, Salt, and Ansible. It is also a stand-alone tool for merging data sources recursively.
 
@@ -92,8 +92,8 @@ Reclass storage with arbitrary class mappings
         - target: '\*'
           class: default
 
-Read more
-=========
+External links
+==============
 
 * http://reclass.pantsfullofunix.net/index.html
 * http://reclass.pantsfullofunix.net/operations.html
