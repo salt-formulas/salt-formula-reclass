@@ -4,7 +4,7 @@
 {{ storage.base_dir }}/nodes/_generated:
   file.directory
 
-{%- for node_name, node in storage.node.iteritems() %}
+{%- for node_name, node in storage.get('node', {}).iteritems() %}
 
 {%- if node.repeat is defined %}
 
