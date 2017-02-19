@@ -3,101 +3,46 @@
 reclass formula
 ===============
 
-reclass is an “external node classifier” (ENC) as can be used with automation tools, such as Puppet, Salt, and Ansible. It is also a stand-alone tool for merging data sources recursively.
+reclass is an “external node classifier” (ENC) as can be used with automation
+tools, such as Puppet, Salt, and Ansible. It is also a stand-alone tool for
+merging data sources recursively.
+
 
 Sample pillars
 ==============
 
 Reclass storage with data fetched from git
 
-.. code-block:: yaml
-
-    reclass:
-      storage:
-        enabled: true
-        base_dir: /srv/reclass
-        data_source:
-          engine: git
-          address: git@repo.domain.com:reclass/reclass-project.git
-          revision: master
+.. literalinclude:: tests/pillar/storage_git.sls
+   :language: yaml
 
 Reclass storage with local data source
 
-.. code-block:: yaml
-
-    reclass:
-      storage:
-        enabled: true
-        base_dir: /srv/reclass
-        data_source:
-          engine: local
+.. literalinclude:: tests/pillar/storage_local.sls
+   :language: yaml
 
 Reclass model with single node definition
 
-.. code-block:: yaml
-
-    reclass:
-      storage:
-        enabled: true
-        node:
-          service_node01:
-            name: svc01
-            domain: deployment.local
-            classes:
-            - cluster.deployment_name.service.role
-            params:
-              salt_master_host: <<salt-master-ip>>
-              linux_system_codename: trusty
-              single_address: <<node-ip>>
+.. literalinclude:: tests/pillar/generate_single.sls
+   :language: yaml
 
 Reclass model with multiple node defined
 
-.. code-block:: yaml
-
-    reclass:
-      storage:
-        enabled: true
-        repeat_replace_symbol: '<<count>>'
-        node:
-          service_node01:
-            name: node<<count>>
-            domain: deployment.local
-            classes:
-            - cluster.deployment.service.role
-            repeat:
-              count: 2
-              start: 5
-              digits: 2
-              params:
-                single_address:
-                  value: 10.0.0.<<count>>
-                  start: 100
-                deploy_address:
-                  value: part-<<count>>-whole
-                  start: 5
-                  digits: 3
-            params:
-              salt_master_host: <<salt-master-ip>>
-              linux_system_codename: trusty
+.. literalinclude:: tests/pillar/generate_multi.sls
+   :language: yaml
 
 Reclass storage with arbitrary class mappings
 
-.. code-block:: yaml
+.. literalinclude:: tests/pillar/class_mapping.sls
+   :language: yaml
 
-    reclass:
-      storage:
-        enabled: true
-        ...
-        class_mappings:
-        - target: '\*'
-          class: default
 
 External links
 ==============
 
 * http://reclass.pantsfullofunix.net/index.html
 * http://reclass.pantsfullofunix.net/operations.html
-* http://ryandlane.com/blog/2014/12/10/reloading-grains-and-pillars-during-a-saltstack-run/
+
 
 Documentation and Bugs
 ======================
