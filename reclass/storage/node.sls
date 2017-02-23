@@ -1,9 +1,6 @@
 {%- from "reclass/map.jinja" import storage with context %}
 {%- if storage.enabled %}
 
-{{ storage.base_dir }}/nodes/_generated:
-  file.directory
-
 {%- for node_name, node in storage.get('node', {}).iteritems() %}
 
 {%- if node.repeat is defined %}
@@ -27,6 +24,7 @@
   - user: root
   - group: root
   - template: jinja
+  - makedirs: True
   - defaults:
       node: {{ node|yaml }}
       node_name: "{{ node_name }}"
@@ -42,6 +40,7 @@
   - user: root
   - group: root
   - template: jinja
+  - makedirs: True
   - defaults:
       node: {{ node|yaml }}
       node_name: "{{ node.get('name', node_name) }}"
