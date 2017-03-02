@@ -6,10 +6,10 @@ parameters:
   {%- if node.params is defined or extra_params|length > 0 %}
   _param:
     {%- for param_name, param_value in node.params.iteritems() %}
-    {{ param_name }}: {{ param_value }}
+    {{ param_name }}: {{ param_value|replace("u'", "'") }}
     {%- endfor %}
     {%- for param_name, param_value in extra_params.iteritems() %}
-    {{ param_name }}: {{ param_value }}
+    {{ param_name }}: {{ param_value|replace("u'", "'") }}
     {%- endfor %}
   {%- endif %}
   {{ node.get('kernel', 'linux') }}:
