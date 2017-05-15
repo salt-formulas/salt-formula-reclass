@@ -38,6 +38,45 @@ def _get_classes_dir():
     return os.path.join(defaults.get('inventory_base_uri'), 'classes')
 
 
+def _get_node_meta(name, cluster="default", environment="prd", classes=None, parameters=None):
+    host_name = name.split('.')[0]
+    domain_name = '.'.join(name.split('.')[1:])
+
+    if classes == None:
+        meta_classes = []
+    else:
+        if isinstance(classes, six.string_types):
+            meta_classes = json.loads(classes)
+        else:
+            meta_classes = classes
+
+    if parameters == None:
+        meta_parameters = {}
+    else:
+        if isinstance(parameters, six.string_types):
+            meta_parameters = json.loads(parameters)
+        else:
+            # generate dict from OrderedDict
+            meta_parameters = {k: v for (k, v) in parameters.items()}
+
+    node_meta = {
+        'classes': meta_classes,
+        'parameters': {
+            '_param': meta_parameters,
+            'linux': {
+                'system': {
+                    'name': host_name,
+                    'domain': domain_name,
+                    'cluster': cluster,
+                    'environment': environment,
+                }
+            }
+        }
+    }
+
+    return node_meta
+
+
 def node_create(name, path=None, cluster="default", environment="prd", classes=None, parameters=None, **kwargs):
     '''
     Create a reclass node
@@ -69,36 +108,7 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
     host_name = name.split('.')[0]
     domain_name = '.'.join(name.split('.')[1:])
 
-    if classes == None:
-        meta_classes = []
-    else:
-        if isinstance(classes, six.string_types):
-            meta_classes = json.loads(classes)
-        else:
-            meta_classes = classes
-
-    if parameters == None:
-        meta_parameters = {}
-    else:
-        if isinstance(parameters, six.string_types):
-            meta_parameters = json.loads(parameters)
-        else:
-            meta_parameters = parameters
-
-    node_meta = {
-        'classes': meta_classes,
-        'parameters': {
-            '_param': meta_parameters,
-            'linux': {
-                'system': {
-                    'name': host_name,
-                    'domain': domain_name,
-                    'cluster': cluster,
-                    'environment': environment,
-                }
-            }
-        }
-    }
+    node_meta = _get_node_meta(name, cluster, environment, classes, parameters)
     LOG.debug(node_meta)
 
     if path == None:
@@ -176,23 +186,14 @@ def node_list(**connection_args):
     ret = {}
 
     for root, sub_folders, files in os.walk(_get_nodes_dir()):
-        for file in files:
-            file_path = os.path.join(root, file)
-            file_content = open(file_path, 'r')
-            file_data = yaml.load(file_content.read())
-            file_content.close()
-            if 'classes' in file_data:
-                classes = file_data.get('classes')
-            else:
-                classes = []
-            if 'parameters' in file_data:
-                if '_param' in file_data.get('parameters'):
-                    parameters = file_data.get('parameters').get('_param')
-                else:
-                    parameters = []
-            else:
-                parameters = []
-            name = file.replace('.yml', '')
+        for fl in files:
+            file_path = os.path.join(root, fl)
+            with open(file_path, 'r') as file_handle:
+                file_read = yaml.load(file_handle.read())
+            file_data = file_read or {}
+            classes = file_data.get('classes', [])
+            parameters = file_data.get('parameters', {}).get('_param', [])
+            name = fl.replace('.yml', '')
             host_name = name.split('.')[0]
             domain_name = '.'.join(name.split('.')[1:])
             path = root.replace(_get_nodes_dir()+'/', '')
