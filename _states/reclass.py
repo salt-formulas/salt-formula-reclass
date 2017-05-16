@@ -79,6 +79,27 @@ def node_present(name, path=None, cluster="default", environment="prd", classes=
     return ret
 
 
+def dynamic_node_present(name, node_data={}, class_mapping={}, **kwargs):
+    '''
+    Classify node, create cluster level overrides and node metadata
+
+    :param name: node FQDN
+    :param node_data: dictionary of known informations about the node
+    :param class_mapping: dictionary of classes and parameters, with conditions
+
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': 'Node "{0}" already exists and it is in correct state'.format(name)}
+
+    classify_ret = __salt__['reclass.node_classify'](name, node_data, class_mapping, **kwargs)
+    ret['comment'] = 'Node "{0}" has been created'.format(name)
+    ret['changes']['Node'] = classify_ret
+
+    return ret
+
+
 def cluster_meta_present(name, value, file_name="overrides.yml", cluster="", **kwargs):
     '''
     Ensures that the cluster metadata entry exists

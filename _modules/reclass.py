@@ -17,6 +17,7 @@ import yaml
 from reclass import get_storage, output
 from reclass.core import Core
 from reclass.config import find_and_read_configfile
+from string import Template
 
 LOG = logging.getLogger(__name__)
 
@@ -231,6 +232,91 @@ def node_update(name, classes=None, parameters=None, **connection_args):
         node = node[name.split("/")[1]]
     else:
         return {'Error': 'Error in retrieving node'}
+
+
+def _get_node_classes(node_data, class_mapping_fragment):
+    classes = []
+
+    for value_tmpl_string in class_mapping_fragment.get('value_template', []):
+        value_tmpl = Template(value_tmpl_string.replace('<<', '${').replace('>>', '}'))
+        rendered_value = value_tmpl.safe_substitute(node_data)
+        classes.append(rendered_value)
+
+    for value in class_mapping_fragment.get('value', []):
+        classes.append(value)
+
+    return classes
+
+
+def _get_params(node_data, class_mapping_fragment):
+    params = {}
+
+    for param_name, param in class_mapping_fragment.items():
+        value = param.get('value', None)
+        value_tmpl_string = param.get('value_template', None)
+        if value:
+            params.update({param_name: value})
+        elif value_tmpl_string:
+            value_tmpl = Template(value_tmpl_string.replace('<<', '${').replace('>>', '}'))
+            rendered_value = value_tmpl.safe_substitute(node_data)
+            params.update({param_name: rendered_value})
+
+    return params
+
+
+def _validate_condition(node_data, expression_tmpl_string):
+    expression_tmpl = Template(expression_tmpl_string.replace('<<', '${').replace('>>', '}'))
+    expression = expression_tmpl.safe_substitute(node_data)
+
+    if expression and expression == 'all':
+        return True
+    elif expression:
+        val_a = expression.split('__')[0]
+        val_b = expression.split('__')[2]
+        condition = expression.split('__')[1]
+        if condition == 'startswith':
+            return val_a.startswith(val_b)
+        elif condition == 'equals':
+            return val_a == val_b
+
+    return False
+
+
+def node_classify(node_name, node_data={}, class_mapping={}, **kwargs):
+    '''
+    CLassify node by given class_mapping dictionary
+
+    :param node_name: node FQDN
+    :param node_data: dictionary of known informations about the node
+    :param class_mapping: dictionary of classes and parameters, with conditions
+
+    '''
+    # clean node_data
+    node_data = {k: v for (k, v) in node_data.items() if not k.startswith('__')}
+
+    classes = []
+    node_params = {}
+    cluster_params = {}
+    ret = {'node_create': '', 'cluster_param': {}}
+
+    for type_name, node_type in class_mapping.items():
+        valid = _validate_condition(node_data, node_type.get('expression', ''))
+        if valid:
+            gen_classes = _get_node_classes(node_data, node_type.get('node_class', {}))
+            classes = classes + gen_classes
+            gen_node_params = _get_params(node_data, node_type.get('node_param', {}))
+            node_params.update(gen_node_params)
+            gen_cluster_params = _get_params(node_data, node_type.get('cluster_param', {}))
+            cluster_params.update(gen_cluster_params)
+
+    if classes:
+        create_kwargs = {'name': node_name, 'path': '_generated', 'classes': classes, 'parameters': node_params}
+        ret['node_create'] = node_create(**create_kwargs)
+
+    for name, value in cluster_params.items():
+        ret['cluster_param'][name] = cluster_meta_set(name, value)
+
+    return ret
 
 
 def inventory(**connection_args):
