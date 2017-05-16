@@ -6,12 +6,13 @@ Module for handling reclass metadata models.
 
 from __future__ import absolute_import
 
+import io
+import json
 import logging
 import os
 import sys
 import six
 import yaml
-import json
 
 from reclass import get_storage, output
 from reclass.core import Core
@@ -36,6 +37,11 @@ def _get_nodes_dir():
 def _get_classes_dir():
     defaults = find_and_read_configfile()
     return os.path.join(defaults.get('inventory_base_uri'), 'classes')
+
+
+def _get_cluster_dir():
+    classes_dir = _get_classes_dir()
+    return os.path.join(classes_dir, 'cluster')
 
 
 def _get_node_meta(name, cluster="default", environment="prd", classes=None, parameters=None):
@@ -257,3 +263,71 @@ def inventory(**connection_args):
             'services': service_classification,
         }
     return output
+
+
+def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    try:
+        with io.open(path, 'r') as file_handle:
+            meta_yaml = yaml.safe_load(file_handle.read())
+        meta = meta_yaml or {}
+    except Exception as e:
+        msg = "Unable to load cluster metadata YAML %s: %s" % (path, repr(e))
+        LOG.debug(msg)
+        meta = {'Error': msg}
+    return meta
+
+
+def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
+    ret = {}
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    if 'Error' not in meta:
+        metadata = meta.get('parameters', {}).get('_param', {})
+        if name not in metadata:
+            return ret
+        del metadata[name]
+        try:
+            with io.open(path, 'w') as file_handle:
+                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+        except Exception as e:
+            msg = "Unable to save cluster metadata YAML: %s" % repr(e)
+            LOG.error(msg)
+            return {'Error': msg}
+        ret = 'Cluster metadata entry {0} deleted'.format(name)
+    return ret
+
+
+def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwargs):
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    if 'Error' not in meta:
+        if not meta:
+            meta = {'parameters': {'_param': {}}}
+        metadata = meta.get('parameters', {}).get('_param', {})
+        if name in metadata and metadata[name] == value:
+            return {name: 'Cluster metadata entry %s already exists and is in correct state' % name}
+        metadata.update({name: value})
+        try:
+            with io.open(path, 'w') as file_handle:
+                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+        except Exception as e:
+            msg = "Unable to save cluster metadata YAML %s: %s" % (path, repr(e))
+            LOG.error(msg)
+            return {'Error': msg}
+        return cluster_meta_get(name, path, **kwargs)
+    return meta
+
+
+def cluster_meta_get(name, file_name="overrides.yml", cluster="", **kwargs):
+    ret = {}
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    metadata = meta.get('parameters', {}).get('_param', {})
+    if 'Error' in meta:
+        ret['Error'] = meta['Error']
+    elif name in metadata:
+        ret[name] = metadata.get(name)
+
+    return ret
+
