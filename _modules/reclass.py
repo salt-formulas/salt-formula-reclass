@@ -6,12 +6,13 @@ Module for handling reclass metadata models.
 
 from __future__ import absolute_import
 
+import io
+import json
 import logging
 import os
 import sys
 import six
 import yaml
-import json
 
 from reclass import get_storage, output
 from reclass.core import Core
@@ -36,6 +37,50 @@ def _get_nodes_dir():
 def _get_classes_dir():
     defaults = find_and_read_configfile()
     return os.path.join(defaults.get('inventory_base_uri'), 'classes')
+
+
+def _get_cluster_dir():
+    classes_dir = _get_classes_dir()
+    return os.path.join(classes_dir, 'cluster')
+
+
+def _get_node_meta(name, cluster="default", environment="prd", classes=None, parameters=None):
+    host_name = name.split('.')[0]
+    domain_name = '.'.join(name.split('.')[1:])
+
+    if classes == None:
+        meta_classes = []
+    else:
+        if isinstance(classes, six.string_types):
+            meta_classes = json.loads(classes)
+        else:
+            meta_classes = classes
+
+    if parameters == None:
+        meta_parameters = {}
+    else:
+        if isinstance(parameters, six.string_types):
+            meta_parameters = json.loads(parameters)
+        else:
+            # generate dict from OrderedDict
+            meta_parameters = {k: v for (k, v) in parameters.items()}
+
+    node_meta = {
+        'classes': meta_classes,
+        'parameters': {
+            '_param': meta_parameters,
+            'linux': {
+                'system': {
+                    'name': host_name,
+                    'domain': domain_name,
+                    'cluster': cluster,
+                    'environment': environment,
+                }
+            }
+        }
+    }
+
+    return node_meta
 
 
 def node_create(name, path=None, cluster="default", environment="prd", classes=None, parameters=None, **kwargs):
@@ -69,36 +114,7 @@ def node_create(name, path=None, cluster="default", environment="prd", classes=N
     host_name = name.split('.')[0]
     domain_name = '.'.join(name.split('.')[1:])
 
-    if classes == None:
-        meta_classes = []
-    else:
-        if isinstance(classes, six.string_types):
-            meta_classes = json.loads(classes)
-        else:
-            meta_classes = classes
-
-    if parameters == None:
-        meta_parameters = {}
-    else:
-        if isinstance(parameters, six.string_types):
-            meta_parameters = json.loads(parameters)
-        else:
-            meta_parameters = parameters
-
-    node_meta = {
-        'classes': meta_classes,
-        'parameters': {
-            '_param': meta_parameters,
-            'linux': {
-                'system': {
-                    'name': host_name,
-                    'domain': domain_name,
-                    'cluster': cluster,
-                    'environment': environment,
-                }
-            }
-        }
-    }
+    node_meta = _get_node_meta(name, cluster, environment, classes, parameters)
     LOG.debug(node_meta)
 
     if path == None:
@@ -176,23 +192,14 @@ def node_list(**connection_args):
     ret = {}
 
     for root, sub_folders, files in os.walk(_get_nodes_dir()):
-        for file in files:
-            file_path = os.path.join(root, file)
-            file_content = open(file_path, 'r')
-            file_data = yaml.load(file_content.read())
-            file_content.close()
-            if 'classes' in file_data:
-                classes = file_data.get('classes')
-            else:
-                classes = []
-            if 'parameters' in file_data:
-                if '_param' in file_data.get('parameters'):
-                    parameters = file_data.get('parameters').get('_param')
-                else:
-                    parameters = []
-            else:
-                parameters = []
-            name = file.replace('.yml', '')
+        for fl in files:
+            file_path = os.path.join(root, fl)
+            with open(file_path, 'r') as file_handle:
+                file_read = yaml.load(file_handle.read())
+            file_data = file_read or {}
+            classes = file_data.get('classes', [])
+            parameters = file_data.get('parameters', {}).get('_param', [])
+            name = fl.replace('.yml', '')
             host_name = name.split('.')[0]
             domain_name = '.'.join(name.split('.')[1:])
             path = root.replace(_get_nodes_dir()+'/', '')
@@ -256,3 +263,71 @@ def inventory(**connection_args):
             'services': service_classification,
         }
     return output
+
+
+def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    try:
+        with io.open(path, 'r') as file_handle:
+            meta_yaml = yaml.safe_load(file_handle.read())
+        meta = meta_yaml or {}
+    except Exception as e:
+        msg = "Unable to load cluster metadata YAML %s: %s" % (path, repr(e))
+        LOG.debug(msg)
+        meta = {'Error': msg}
+    return meta
+
+
+def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
+    ret = {}
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    if 'Error' not in meta:
+        metadata = meta.get('parameters', {}).get('_param', {})
+        if name not in metadata:
+            return ret
+        del metadata[name]
+        try:
+            with io.open(path, 'w') as file_handle:
+                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+        except Exception as e:
+            msg = "Unable to save cluster metadata YAML: %s" % repr(e)
+            LOG.error(msg)
+            return {'Error': msg}
+        ret = 'Cluster metadata entry {0} deleted'.format(name)
+    return ret
+
+
+def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwargs):
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    if 'Error' not in meta:
+        if not meta:
+            meta = {'parameters': {'_param': {}}}
+        metadata = meta.get('parameters', {}).get('_param', {})
+        if name in metadata and metadata[name] == value:
+            return {name: 'Cluster metadata entry %s already exists and is in correct state' % name}
+        metadata.update({name: value})
+        try:
+            with io.open(path, 'w') as file_handle:
+                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+        except Exception as e:
+            msg = "Unable to save cluster metadata YAML %s: %s" % (path, repr(e))
+            LOG.error(msg)
+            return {'Error': msg}
+        return cluster_meta_get(name, path, **kwargs)
+    return meta
+
+
+def cluster_meta_get(name, file_name="overrides.yml", cluster="", **kwargs):
+    ret = {}
+    path = os.path.join(_get_cluster_dir(), cluster, file_name)
+    meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
+    metadata = meta.get('parameters', {}).get('_param', {})
+    if 'Error' in meta:
+        ret['Error'] = meta['Error']
+    elif name in metadata:
+        ret[name] = metadata.get(name)
+
+    return ret
+
