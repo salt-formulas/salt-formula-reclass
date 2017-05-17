@@ -1,6 +1,6 @@
 
 ===============
-reclass formula
+Reclass Formula
 ===============
 
 reclass is an “external node classifier” (ENC) as can be used with automation
@@ -8,8 +8,8 @@ tools, such as Puppet, Salt, and Ansible. It is also a stand-alone tool for
 merging data sources recursively.
 
 
-Sample pillars
-==============
+Sample Metadata
+===============
 
 Reclass storage with data fetched from git
 
@@ -31,14 +31,19 @@ Reclass model with multiple node defined
 .. literalinclude:: tests/pillar/generate_multi.sls
    :language: yaml
 
-Reclass storage with arbitrary class mappings
+Reclass storage with simple class mappings
 
 .. literalinclude:: tests/pillar/class_mapping.sls
    :language: yaml
 
+Reclass models with dynamic node classification
 
-External links
-==============
+.. literalinclude:: tests/pillar/node_classify.sls
+   :language: yaml
+
+
+More Information
+================
 
 * http://reclass.pantsfullofunix.net/index.html
 * http://reclass.pantsfullofunix.net/operations.html
