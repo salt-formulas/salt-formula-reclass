@@ -3,50 +3,43 @@ reclass:
     enabled: true
     class_mapping:
       common_node:
-        type: all
+        expression: all
         node_param:
           single_address:
-            value_template: node_ip
+            value_template: <<node_ip>>
           linux_system_codename:
-            value_template: node_os
-      infra_config_node:
-        type: hostname__startswith
-        expression: cfg
-        node_class:
-        - cluster.<<node_cluster>>.infra.config
-        node_param:
-          reclass_config_master:
-            value_template: node_ip
-      openstack_control:
-        type: hostname__startswith
-        expression: ctl
-        node_class:
-        - cluster.<<cluster>>.openstack.control
-      openstack_control_node_member01:
-        type: hostname__equals
-        expression: ctl01
+            value_template: <<node_os>>
+          salt_master_host:
+            value_template: <<node_master_ip>>
+      infra_config:
+        expression: <<node_hostname>>__startswith__cfg
         cluster_param:
-          openstack_control_node01_address:
-            value_template: node_ip
-        node_param:
-          openstack_control_vip_address:
-            value_template: node_ip
-          keepalived_vip_priority:
-            value: 103
-          opencontrail_database_id:
-            value: 1
-          rabbitmq_cluster_role:
-            value: master
-      openstack_control_node_member02:
-        type: hostname__equals
-        expression: ctl02
+          infra_config_address:
+            value_template: <<node_ip>>
+          infra_config_deploy_address:
+            value_template: <<node_ip>>
+      infra_proxy:
+        expression: <<node_hostname>>__startswith__prx
+        node_class:
+          value_template:
+            - cluster.<<node_cluster>>.stacklight.proxy
+      kubernetes_control01:
+        expression: <<node_hostname>>__equals__ctl01
         cluster_param:
-          openstack_control_node01_address:
-            value_template: node_ip
-        node_param:
-          keepalived_vip_priority:
-            value: 102
-          opencontrail_database_id:
-            value: 2
-          rabbitmq_cluster_role:
-            value: slave
+          kubernetes_control_node01_address:
+            value_template: <<node_ip>>
+      kubernetes_control02:
+        expression: <<node_hostname>>__equals__ctl02
+        cluster_param:
+          kubernetes_control_node02_address:
+            value_template: <<node_ip>>
+      kubernetes_control03:
+        expression: <<node_hostname>>__equals__ctl03
+        cluster_param:
+          kubernetes_control_node03_address:
+            value_template: <<node_ip>>
+      kubernetes_compute:
+        expression: <<node_hostname>>__startswith__cmp
+        node_class:
+          value_template:
+            - cluster.<<node_cluster>>.kubernetes.compute
