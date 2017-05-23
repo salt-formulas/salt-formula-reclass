@@ -14,6 +14,22 @@ reclass_git_data_dir:
   {%- endif %}
   - force_reset: {{ storage.data_source.force_reset|default(False) }}
 
+{%- elif storage.data_source.engine == "archive" %}
+
+reclass_archive_data_dir:
+  archive.extracted:
+    - name: {{ storage.base_dir }}
+    - source: {{ storage.data_source.address }}
+    {%- if storage.data_source.hash is string %}
+    - source_hash: {{ storage.data_source.hash }}
+    {%- endif %}
+    {%- if storage.data_source.options is string %}
+    - options: {{ storage.data_source.options }}
+    {%- endif %}
+    - user: root
+    - group: root
+    - if_missing: {{ storage.base_dir }}/classes
+
 {%- endif %}
 
 reclass_data_dir:
@@ -23,6 +39,9 @@ reclass_data_dir:
 {%- if storage.data_source.engine == "git" %}
   - require:
     - git: reclass_git_data_dir
+{%- elif storage.data_source.engine == "archive" %}
+  - require:
+    - archive: reclass_archive_data_dir
 {%- endif %}
 
 {%- endif %}
