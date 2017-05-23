@@ -21,6 +21,16 @@ Reclass storage with local data source
 .. literalinclude:: tests/pillar/storage_local.sls
    :language: yaml
 
+Reclass storage with archive data source
+
+.. literalinclude:: tests/pillar/storage_archive.sls
+   :language: yaml
+
+Reclass storage with archive data source with content hash check
+
+.. literalinclude:: tests/pillar/storage_archive_public.sls
+   :language: yaml
+
 Reclass model with single node definition
 
 .. literalinclude:: tests/pillar/generate_single.sls
