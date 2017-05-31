@@ -1,0 +1,18 @@
+graph:
+{%- if pillar.get('reclass', {}).storage is defined %}
+{%- from "reclass/map.jinja" import storage with context %}
+- host: {{ grains.id }}
+  service: reclass.storage
+  type: software-config
+  relations:
+  {%- if storage.data_source.engine == 'git' %}
+  - host_external: {{ storage.data_source.address }}
+    service: git.repository
+    direction: source
+    type: tcp-ssh
+  {%- endif %}
+{%- endif %}
+
+{#-
+  vim: syntax=jinja
+-#}
