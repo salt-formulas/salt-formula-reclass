@@ -10,11 +10,14 @@ import io
 import json
 import logging
 import os
+import socket
 import sys
 import six
 import yaml
 
+from urlparse import urlparse
 from reclass import get_storage, output
+from reclass.adapters.salt import ext_pillar
 from reclass.core import Core
 from reclass.config import find_and_read_configfile
 from string import Template
@@ -217,6 +220,154 @@ def node_list(**connection_args):
     return ret
 
 
+def _is_valid_ipv4_address(address):
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+    except AttributeError:
+        try:
+            socket.inet_aton(address)
+        except socket.error:
+            return False
+        return address.count('.') == 3
+    except socket.error:
+        return False
+    return True
+
+
+def _is_valid_ipv6_address(address):
+    try:
+        socket.inet_pton(socket.AF_INET6, address)
+    except socket.error:
+        return False
+    return True
+
+
+def _guess_host_from_target(host, domain=None):
+    '''
+    Guess minion ID from given host and domain arguments. Host argument can contain
+    hostname, FQDN, IPv4 or IPv6 addresses.
+    '''
+    if _is_valid_ipv4_address(host):
+        tgt = 'ipv4:%s' % host
+    elif _is_valid_ipv6_address(host):
+        tgt = 'ipv6:%s' % host
+    elif host.endswith(domain):
+        tgt = 'fqdn:%s' % host
+    else:
+        tgt = 'fqdn:%s.%s' % (host, domain)
+
+    res = __salt__['saltutil.cmd'](tgt=tgt,
+                                   expr_form='grain',
+                                   fun='grains.item',
+                                   arg=('id',))
+
+    return res.values()[0].get('ret', {}).get('id', '')
+
+
+def _interpolate_graph_data(graph_data, **kwargs):
+    new_nodes = []
+    for node in graph_data:
+        for relation in node.get('relations', []):
+            if relation.get('host_from_target', None):
+                host = _guess_host_from_target(relation.pop('host_from_target'))
+                relation['host'] = host
+            if relation.get('host_external', None):
+                parsed_host_external = urlparse(relation.pop('host_external'))
+                service = parsed_host_external.netloc
+                host = relation.get('service', '')
+                relation['host'] = host
+                relation['service'] = service
+                if host not in [n.get('host', '') for n in graph_data + new_nodes]:
+                    new_node = {
+                        'host': host,
+                        'service': service,
+                        'type': relation.get('type', ''),
+                        'relations': []
+                    }
+                    new_nodes.append(new_node)
+
+    graph_data = graph_data + new_nodes
+
+    return graph_data
+
+
+def _grain_graph_data(*args, **kwargs):
+    ret = __salt__['saltutil.cmd'](tgt='*',
+                                   fun='grains.item',
+                                   arg=('salt:graph',))
+    graph_data = []
+    for minion_ret in ret.values():
+        if minion_ret.get('retcode', 1) == 0:
+            graph_datum = minion_ret.get('ret', {}).get('salt:graph', [])
+            graph_data = graph_data + graph_datum
+
+    graph_nodes = _interpolate_graph_data(graph_data)
+    graph = {}
+
+    for node in graph_nodes:
+        if node.get('host') not in graph:
+            graph[node.get('host')] = {}
+        graph[node.pop('host')][node.pop('service')] = node
+
+    return {'graph': graph}
+
+
+def _pillar_graph_data(*args, **kwargs):
+    graph = {}
+    nodes = inventory()
+    for node, node_data in nodes.items():
+        for role in node_data.get('roles', []):
+            if node not in graph:
+                graph[node] = {}
+            graph[node][role] = {'relations': []}
+
+    return {'graph': graph}
+
+
+def graph_data(*args, **kwargs):
+    '''
+    Returns graph data for visualization app
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.graph_data
+    
+    '''
+    pillar_data = _pillar_graph_data().get('graph')
+    grain_data = _grain_graph_data().get('graph')
+
+    for host, services in pillar_data.items():
+        for service, service_data in services.items():
+            grain_service = grain_data.get(host, {}).get(service, {})
+            service_data.update(grain_service)
+
+    graph = []
+    for host, services in pillar_data.items():
+        for service, service_data in services.items():
+            additional_data = {
+                'host': host,
+                'service': service
+            }
+            service_data.update(additional_data)
+            graph.append(service_data)
+
+    for host, services in grain_data.items():
+        for service, service_data in services.items():
+            additional_data = {
+                'host': host,
+                'service': service
+            }
+            service_data.update(additional_data)
+            host_list = [g.get('host', '') for g in graph]
+            service_list = [g.get('service', '') for g in graph if g.get('host') == host]
+            if host not in host_list or (host in host_list and service not in service_list):
+                graph.append(service_data)
+
+    return {'graph': graph}
+
+
 def node_update(name, classes=None, parameters=None, **connection_args):
     '''
     Update a node metadata information, classes and parameters.
@@ -319,6 +470,26 @@ def node_classify(node_name, node_data={}, class_mapping={}, **kwargs):
     return ret
 
 
+def node_pillar(node_name, **kwargs):
+    '''
+    Returns pillar data for given minion from reclass inventory.
+
+    :param node_name: target minion ID
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.node_pillar minion_id
+
+    '''
+    defaults = find_and_read_configfile()
+    pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
+    output = {node_name: pillar}
+
+    return output
+
+
 def inventory(**connection_args):
     '''
     Get all nodes in inventory and their associated services/roles classification.
@@ -352,6 +523,18 @@ def inventory(**connection_args):
 
 
 def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
+    '''
+    List all cluster level overrides
+
+    :param file_name: name of the override file, defaults to: overrides.yml
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.cluster_meta_list
+
+    '''
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     try:
         with io.open(path, 'r') as file_handle:
@@ -365,6 +548,19 @@ def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
 
 
 def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
+    '''
+    Delete cluster level override entry
+
+    :param name: name of the override entry (dictionary key)
+    :param file_name: name of the override file, defaults to: overrides.yml
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.cluster_meta_delete foo
+
+    '''
     ret = {}
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
@@ -385,6 +581,20 @@ def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
 
 
 def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwargs):
+    '''
+    Create cluster level override entry
+
+    :param name: name of the override entry (dictionary key)
+    :param value: value of the override entry (dictionary value)
+    :param file_name: name of the override file, defaults to: overrides.yml
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.cluster_meta_set foo bar
+
+    '''
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
     if 'Error' not in meta:
@@ -406,6 +616,19 @@ def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwarg
 
 
 def cluster_meta_get(name, file_name="overrides.yml", cluster="", **kwargs):
+    '''
+    Get single cluster level override entry
+
+    :param name: name of the override entry (dictionary key)
+    :param file_name: name of the override file, defaults to: overrides.yml
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.cluster_meta_get foo
+
+    '''
     ret = {}
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
