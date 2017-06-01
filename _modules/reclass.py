@@ -267,17 +267,25 @@ def _guess_host_from_target(host, domain=None):
 def _interpolate_graph_data(graph_data, **kwargs):
     new_nodes = []
     for node in graph_data:
+        if not node.get('relations', []):
+            node['relations'] = []
         for relation in node.get('relations', []):
             if relation.get('host_from_target', None):
                 host = _guess_host_from_target(relation.pop('host_from_target'))
                 relation['host'] = host
             if relation.get('host_external', None):
-                parsed_host_external = urlparse(relation.pop('host_external'))
-                service = parsed_host_external.netloc
+                parsed_host_external = [urlparse(item).netloc
+                                        for item
+                                        in relation.get('host_external', '').split(' ')
+                                        if urlparse(item).netloc]
+                service = parsed_host_external[0] if parsed_host_external else ''
                 host = relation.get('service', '')
                 relation['host'] = host
+                del relation['host_external']
                 relation['service'] = service
-                if host not in [n.get('host', '') for n in graph_data + new_nodes]:
+                host_list = [n.get('host', '') for n in graph_data + new_nodes]
+                service_list = [n.get('service', '') for n in graph_data + new_nodes if host in n.get('host', '')]
+                if host not in host_list or (host in host_list and service not in service_list):
                     new_node = {
                         'host': host,
                         'service': service,
