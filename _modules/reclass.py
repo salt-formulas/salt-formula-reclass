@@ -260,8 +260,12 @@ def _guess_host_from_target(host, domain=None):
                                    expr_form='grain',
                                    fun='grains.item',
                                    arg=('id',))
+    if res.values():
+        ret = res.values()[0].get('ret', {}).get('id', '')
+    else:
+        ret = host
 
-    return res.values()[0].get('ret', {}).get('id', '')
+    return ret
 
 
 def _interpolate_graph_data(graph_data, **kwargs):
