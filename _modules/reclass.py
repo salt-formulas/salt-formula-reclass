@@ -274,6 +274,8 @@ def _interpolate_graph_data(graph_data, **kwargs):
         if not node.get('relations', []):
             node['relations'] = []
         for relation in node.get('relations', []):
+            if not relation.get('status', None):
+                relation['status'] = 'unknown'
             if relation.get('host_from_target', None):
                 host = _guess_host_from_target(relation.pop('host_from_target'))
                 relation['host'] = host
@@ -360,7 +362,8 @@ def graph_data(*args, **kwargs):
         for service, service_data in services.items():
             additional_data = {
                 'host': host,
-                'service': service
+                'service': service,
+                'status': 'unknown'
             }
             service_data.update(additional_data)
             graph.append(service_data)
@@ -369,7 +372,8 @@ def graph_data(*args, **kwargs):
         for service, service_data in services.items():
             additional_data = {
                 'host': host,
-                'service': service
+                'service': service,
+                'status': 'success'
             }
             service_data.update(additional_data)
             host_list = [g.get('host', '') for g in graph]
