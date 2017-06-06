@@ -242,34 +242,47 @@ def _is_valid_ipv6_address(address):
     return True
 
 
-def _guess_host_from_target(host, domain=None):
+def _get_grains(*args, **kwargs):
+    res = __salt__['saltutil.cmd'](tgt='*',
+                                   fun='grains.item',
+                                   arg=args,
+                                   **{'timeout': 10})
+    return res or {}
+
+
+def _guess_host_from_target(network_grains, host, domain=' '):
     '''
     Guess minion ID from given host and domain arguments. Host argument can contain
     hostname, FQDN, IPv4 or IPv6 addresses.
     '''
+    key = None
+    value = None
+
     if _is_valid_ipv4_address(host):
-        tgt = 'ipv4:%s' % host
+        key = 'ipv4'
+        value = host
     elif _is_valid_ipv6_address(host):
-        tgt = 'ipv6:%s' % host
+        key = 'ipv6'
+        value = host
     elif host.endswith(domain):
-        tgt = 'fqdn:%s' % host
+        key = 'fqdn'
+        value = host
     else:
-        tgt = 'fqdn:%s.%s' % (host, domain)
+        key = 'fqdn'
+        value = '%s.%s' % (host, domain)
 
-    res = __salt__['saltutil.cmd'](tgt=tgt,
-                                   expr_form='grain',
-                                   fun='grains.item',
-                                   arg=('id',))
-    if res.values():
-        ret = res.values()[0].get('ret', {}).get('id', '')
-    else:
-        ret = host
+    target = None
+    if network_grains and isinstance(network_grains, dict) and key and value:
+        for minion, grains in network_grains.items():
+            if grains.get('retcode', 1) == 0 and value in grains.get('ret', {}).get(key, ''):
+                target = minion
 
-    return ret
+    return target or host
 
 
 def _interpolate_graph_data(graph_data, **kwargs):
     new_nodes = []
+    network_grains = _get_grains('ipv4', 'ipv6', 'fqdn')
     for node in graph_data:
         if not node.get('relations', []):
             node['relations'] = []
@@ -277,7 +290,7 @@ def _interpolate_graph_data(graph_data, **kwargs):
             if not relation.get('status', None):
                 relation['status'] = 'unknown'
             if relation.get('host_from_target', None):
-                host = _guess_host_from_target(relation.pop('host_from_target'))
+                host = _guess_host_from_target(network_grains, relation.pop('host_from_target'))
                 relation['host'] = host
             if relation.get('host_external', None):
                 parsed_host_external = [urlparse(item).netloc
@@ -306,9 +319,7 @@ def _interpolate_graph_data(graph_data, **kwargs):
 
 
 def _grain_graph_data(*args, **kwargs):
-    ret = __salt__['saltutil.cmd'](tgt='*',
-                                   fun='grains.item',
-                                   arg=('salt:graph',))
+    ret = _get_grains('salt:graph')
     graph_data = []
     for minion_ret in ret.values():
         if minion_ret.get('retcode', 1) == 0:
@@ -346,7 +357,7 @@ def graph_data(*args, **kwargs):
 
     .. code-block:: bash
 
-        salt '*' reclass.graph_data
+        salt-call reclass.graph_data
     
     '''
     pillar_data = _pillar_graph_data().get('graph')
