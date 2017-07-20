@@ -14,6 +14,7 @@ import socket
 import sys
 import six
 import yaml
+import re
 
 from urlparse import urlparse
 from reclass import get_storage, output
@@ -21,6 +22,8 @@ from reclass.adapters.salt import ext_pillar
 from reclass.core import Core
 from reclass.config import find_and_read_configfile
 from string import Template
+from reclass.errors import ReclassException
+
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +34,83 @@ def __virtual__():
     is installed on this minion.
     '''
     return 'reclass'
+
+
+def _deps(ret_classes=True, ret_errors=False):
+    '''
+    Returns classes if ret_classes=True, else returns soft_params if ret_classes=False
+    '''
+    defaults = find_and_read_configfile()
+    path = defaults.get('inventory_base_uri')
+    classes = {}
+    soft_params = {}
+    errors = []
+
+    # find classes
+    for root, dirs, files in os.walk(path):
+        if 'init.yml' in files:
+            class_file = root + '/' + 'init.yml'
+            class_name = class_file.replace(path, '')[:-9].replace('/', '.')
+            classes[class_name] = {'file': class_file}
+
+        for f in files:
+            if f.endswith('.yml') and f != 'init.yml':
+                class_file = root + '/' + f
+                class_name = class_file.replace(path, '')[:-4].replace('/', '.')
+                classes[class_name] = {'file': class_file}
+
+    # read classes
+    for class_name, params in classes.items():
+        with open(params['file'], 'r') as f:
+            # read raw data
+            raw = f.read()
+            pr = re.findall('\${_param:(.*?)}', raw)
+            if pr:
+                params['params_required'] = list(set(pr))
+
+            # load yaml
+            try:
+                data = yaml.load(raw)
+            except yaml.scanner.ScannerError as e:
+                errors.append(params['file'] + ' ' + str(e))
+                pass
+
+            if type(data) == dict:
+                if data.get('classes'):
+                    params['includes'] = data.get('classes', [])
+                if data.get('parameters') and data['parameters'].get('_param'):
+                    params['params_created'] = data['parameters']['_param']
+
+                if not(data.get('classes') or data.get('parameters')):
+                    errors.append(params['file'] + ' ' + 'file missing classes and parameters')
+            else:
+                errors.append(params['file'] + ' ' + 'is not valid yaml')
+
+    if ret_classes:
+        return classes
+    elif ret_errors:
+        return errors
+
+    # find parameters and its usage
+    for class_name, params in classes.items():
+        for pn, pv in params.get('params_created', {}).items():
+            # create param if missing
+            if pn not in soft_params:
+                soft_params[pn] = {'created_at': {}, 'required_at': []}
+
+            # add created_at
+            if class_name not in soft_params[pn]['created_at']:
+                soft_params[pn]['created_at'][class_name] = pv
+
+        for pn in params.get('params_required', []):
+            # create param if missing
+            if pn not in soft_params:
+                soft_params[pn] = {'created_at': {}, 'required_at': []}
+
+            # add created_at
+            soft_params[pn]['required_at'].append(class_name)
+
+    return soft_params
 
 
 def _get_nodes_dir():
@@ -85,6 +165,87 @@ def _get_node_meta(name, cluster="default", environment="prd", classes=None, par
     }
 
     return node_meta
+
+
+def validate_yaml_syntax():
+    '''
+    Returns list of yaml files with syntax errors
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.validate_yaml_syntax
+    '''
+    errors = _deps(ret_classes=False, ret_errors=True)
+    if errors:
+        ret = {'Errors': errors}
+        return ret
+
+
+def soft_meta_list():
+    '''
+    Returns params list
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.soft_meta_list
+    '''
+    return _deps(ret_classes=False)
+
+
+def class_list():
+    '''
+    Returns classes list
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.class_list
+    '''
+    return _deps(ret_classes=True)
+
+
+def soft_meta_get(name):
+    '''
+    :param name: expects the following format: apt_mk_version
+
+    Returns detail of the params
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.soft_meta_get apt_mk_version
+    '''
+    soft_params = _deps(ret_classes=False)
+
+    if name in soft_params:
+      return {name: soft_params.get(name)}
+    else:
+      return {'Error': 'No param {0} found'.format(name)}
+
+def class_get(name):
+    '''
+    :param name: expects the following format classes.system.linux.repo
+
+    Returns detail data of the class
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt '*' reclass.class_get classes.system.linux.repo
+    '''
+    classes = _deps(ret_classes=True)
+    tmp_name = '.' + name
+    if tmp_name in classes:
+      return {name: classes.get(tmp_name)}
+    else:
+      return {'Error': 'No class {0} found'.format(name)}
+
 
 
 def node_create(name, path=None, cluster="default", environment="prd", classes=None, parameters=None, **kwargs):
@@ -494,6 +655,59 @@ def node_classify(node_name, node_data={}, class_mapping={}, **kwargs):
     for name, value in cluster_params.items():
         ret['cluster_param'][name] = cluster_meta_set(name, value)
 
+    return ret
+
+
+def validate_node_params(node_name, **kwargs):
+    '''
+    Validates if pillar of a node is in correct state.
+    Returns error message only if error occurred.
+
+    :param node_name: target minion ID
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.validate_node_params minion_id
+
+    '''
+    defaults = find_and_read_configfile()
+    meta = ''
+    error = None
+    try:
+        pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
+    except (ReclassException, Exception) as e:
+        msg = "Validation failed in %s on %s" % (repr(e), node_name)
+        LOG.error(msg)
+        meta = {'Error': msg}
+        s = str(type(e))
+        if 'yaml.scanner.ScannerError' in s:
+            error = re.sub(r"\r?\n?$", "", repr(str(e)), 1)
+        else:
+            error = e.message
+    if 'Error' in meta:
+        ret = {node_name: error}
+    else:
+        ret = {node_name: ''}
+    return ret
+
+
+def validate_nodes_params(**connection_args):
+    '''
+    Validates if pillar all known nodes is in correct state.
+    Returns error message for every node where problem occurred.
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.validate_nodes_params
+    '''
+    ret={}
+    nodes = node_list(**connection_args)
+    for node_name, node in nodes.items():
+            ret.update(validate_node_params(node_name))
     return ret
 
 
