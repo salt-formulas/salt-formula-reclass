@@ -3,6 +3,9 @@ storage_type: {{ storage.storage_type }}
 pretty_print: True
 output: {{ storage.get('output', 'json') }}
 inventory_base_uri: {{ storage.base_dir }}
+{%- if storage.nodes_uri is defined %}
+nodes_uri: {{ nodes_uri }}
+{%- endif %}
 {%- if storage.class_mappings is defined %}
 class_mappings:
 {%- for mapping in storage.class_mappings %}

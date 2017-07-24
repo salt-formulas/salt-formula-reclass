@@ -115,7 +115,8 @@ def _deps(ret_classes=True, ret_errors=False):
 
 def _get_nodes_dir():
     defaults = find_and_read_configfile()
-    return os.path.join(defaults.get('inventory_base_uri'), 'nodes')
+    return defaults.get('nodes_uri') or \
+        os.path.join(defaults.get('inventory_base_uri'), 'nodes')
 
 
 def _get_classes_dir():
