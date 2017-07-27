@@ -7,7 +7,6 @@ parameters:
     storage:
       enabled: true
       base_dir: /srv/salt/reclass
-      nodes_uri:
       output: yaml
       data_source:
         engine: git
