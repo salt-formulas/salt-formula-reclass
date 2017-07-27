@@ -604,22 +604,28 @@ def _get_params(node_data, class_mapping_fragment):
     return params
 
 
-def _validate_condition(node_data, expression_tmpl_string):
-    expression_tmpl = Template(expression_tmpl_string.replace('<<', '${').replace('>>', '}'))
-    expression = expression_tmpl.safe_substitute(node_data)
+def _validate_condition(node_data, expressions):
+    # allow string expression definition for single expression conditions
+    if isinstance(expressions, six.string_types):
+        expressions = [expressions]
 
-    if expression and expression == 'all':
-        return True
-    elif expression:
-        val_a = expression.split('__')[0]
-        val_b = expression.split('__')[2]
-        condition = expression.split('__')[1]
-        if condition == 'startswith':
-            return val_a.startswith(val_b)
-        elif condition == 'equals':
-            return val_a == val_b
+    result = []
+    for expression_tmpl_string in expressions:
+        expression_tmpl = Template(expression_tmpl_string.replace('<<', '${').replace('>>', '}'))
+        expression = expression_tmpl.safe_substitute(node_data)
 
-    return False
+        if expression and expression == 'all':
+            result.append(True)
+        elif expression:
+            val_a = expression.split('__')[0]
+            val_b = expression.split('__')[2]
+            condition = expression.split('__')[1]
+            if condition == 'startswith':
+                result.append(val_a.startswith(val_b))
+            elif condition == 'equals':
+                result.append(val_a == val_b)
+
+    return all(result)
 
 
 def node_classify(node_name, node_data={}, class_mapping={}, **kwargs):
