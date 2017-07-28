@@ -56,4 +56,10 @@ suites:
     provisioner:
       pillars-from-files:
         reclass.sls: tests/pillar/storage_local.sls
+
+  - name: storage_nodes_uri
+    provisioner:
+      pillars-from-files:
+        reclass.sls: tests/pillar/storage_nodes_uri.sls
+
 # vim: ft=yaml sw=2 ts=2 sts=2 tw=125
