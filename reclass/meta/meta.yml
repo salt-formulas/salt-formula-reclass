@@ -6,8 +6,8 @@ graph:
   type: software-config
   relations:
   {%- if storage.data_source.engine == 'git' %}
-  - host_external: {{ storage.data_source.address }}
-    service: git.repo
+  - host_external: {{ storage.data_source.address.replace(':', '/').replace('git@', 'http://') }}
+    service: external-service
     direction: source
     type: tcp-ssh
   {%- endif %}
