@@ -16,7 +16,8 @@ import six
 import yaml
 import re
 
-from urlparse import urlparse
+import urlparse
+
 from reclass import get_storage, output
 from reclass.adapters.salt import ext_pillar
 from reclass.core import Core
@@ -168,25 +169,9 @@ def _get_node_meta(name, cluster="default", environment="prd", classes=None, par
     return node_meta
 
 
-def validate_yaml_syntax():
-    '''
-    Returns list of yaml files with syntax errors
-
-    CLI Examples:
-
-    .. code-block:: bash
-
-        salt '*' reclass.validate_yaml_syntax
-    '''
-    errors = _deps(ret_classes=False, ret_errors=True)
-    if errors:
-        ret = {'Errors': errors}
-        return ret
-
-
 def soft_meta_list():
     '''
-    Returns params list
+    Returns all defined soft metadata parameters.
 
     CLI Examples:
 
@@ -199,7 +184,7 @@ def soft_meta_list():
 
 def class_list():
     '''
-    Returns classes list
+    Returns list of all classes defined within reclass inventory.
 
     CLI Examples:
 
@@ -212,28 +197,30 @@ def class_list():
 
 def soft_meta_get(name):
     '''
-    :param name: expects the following format: apt_mk_version
+    Returns single soft metadata parameter.
 
-    Returns detail of the params
+    :param name: expects the following format: apt_mk_version
 
     CLI Examples:
 
     .. code-block:: bash
 
-        salt '*' reclass.soft_meta_get apt_mk_version
+        salt '*' reclass.soft_meta_get openstack_version
     '''
     soft_params = _deps(ret_classes=False)
 
     if name in soft_params:
-      return {name: soft_params.get(name)}
+        return {name: soft_params.get(name)}
     else:
-      return {'Error': 'No param {0} found'.format(name)}
+        return {'Error': 'No param {0} found'.format(name)}
+
 
 def class_get(name):
     '''
+    Returns detailes information about class file in reclass inventory.
+
     :param name: expects the following format classes.system.linux.repo
 
-    Returns detail data of the class
     CLI Examples:
 
     .. code-block:: bash
@@ -243,10 +230,9 @@ def class_get(name):
     classes = _deps(ret_classes=True)
     tmp_name = '.' + name
     if tmp_name in classes:
-      return {name: classes.get(tmp_name)}
+        return {name: classes.get(tmp_name)}
     else:
-      return {'Error': 'No class {0} found'.format(name)}
-
+        return {'Error': 'No class {0} found'.format(name)}
 
 
 def node_create(name, path=None, cluster="default", environment="prd", classes=None, parameters=None, **kwargs):
@@ -455,10 +441,10 @@ def _interpolate_graph_data(graph_data, **kwargs):
                 host = _guess_host_from_target(network_grains, relation.pop('host_from_target'))
                 relation['host'] = host
             if relation.get('host_external', None):
-                parsed_host_external = [urlparse(item).netloc
+                parsed_host_external = [urlparse.urlparse(item).netloc
                                         for item
                                         in relation.get('host_external', '').split(' ')
-                                        if urlparse(item).netloc]
+                                        if urlparse.urlparse(item).netloc]
                 service = parsed_host_external[0] if parsed_host_external else ''
                 host = relation.get('service', '')
                 relation['host'] = host
@@ -665,10 +651,28 @@ def node_classify(node_name, node_data={}, class_mapping={}, **kwargs):
     return ret
 
 
-def validate_node_params(node_name, **kwargs):
+def validate_yaml():
     '''
-    Validates if pillar of a node is in correct state.
-    Returns error message only if error occurred.
+    Returns list of all reclass YAML files that contain syntax
+    errors.
+
+    CLI Examples:
+
+    .. code-block:: bash
+
+        salt-call reclass.validate_yaml
+    '''
+    errors = _deps(ret_classes=False, ret_errors=True)
+    if errors:
+        ret = {'Errors': errors}
+        return ret
+
+
+def validate_pillar(node_name=None, **kwargs):
+    '''
+    Validates whether the pillar of given node is in correct state.
+    If node is not specified it validates pillars of all known nodes.
+    Returns error message for every node with currupted metadata.
 
     :param node_name: target minion ID
 
@@ -676,51 +680,40 @@ def validate_node_params(node_name, **kwargs):
 
     .. code-block:: bash
 
-        salt-call reclass.validate_node_params minion_id
-
+        salt-call reclass.validate_pillar
+        salt-call reclass.validate_pillar minion-id
     '''
-    defaults = find_and_read_configfile()
-    meta = ''
-    error = None
-    try:
-        pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
-    except (ReclassException, Exception) as e:
-        msg = "Validation failed in %s on %s" % (repr(e), node_name)
-        LOG.error(msg)
-        meta = {'Error': msg}
-        s = str(type(e))
-        if 'yaml.scanner.ScannerError' in s:
-            error = re.sub(r"\r?\n?$", "", repr(str(e)), 1)
-        else:
-            error = e.message
-    if 'Error' in meta:
-        ret = {node_name: error}
+    if node_name is None:
+        ret={}
+        nodes = node_list(**kwargs)
+        for node_name, node in nodes.items():
+                ret.update(validate_pillar(node_name))
+        return ret
     else:
-        ret = {node_name: ''}
-    return ret
-
-
-def validate_nodes_params(**connection_args):
-    '''
-    Validates if pillar all known nodes is in correct state.
-    Returns error message for every node where problem occurred.
-
-    CLI Examples:
-
-    .. code-block:: bash
-
-        salt-call reclass.validate_nodes_params
-    '''
-    ret={}
-    nodes = node_list(**connection_args)
-    for node_name, node in nodes.items():
-            ret.update(validate_node_params(node_name))
-    return ret
+        defaults = find_and_read_configfile()
+        meta = ''
+        error = None
+        try:
+            pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
+        except (ReclassException, Exception) as e:
+            msg = "Validation failed in %s on %s" % (repr(e), node_name)
+            LOG.error(msg)
+            meta = {'Error': msg}
+            s = str(type(e))
+            if 'yaml.scanner.ScannerError' in s:
+                error = re.sub(r"\r?\n?$", "", repr(str(e)), 1)
+            else:
+                error = e.message
+        if 'Error' in meta:
+            ret = {node_name: error}
+        else:
+            ret = {node_name: ''}
+        return ret
 
 
 def node_pillar(node_name, **kwargs):
     '''
-    Returns pillar data for given minion from reclass inventory.
+    Returns pillar metadata for given node from reclass inventory.
 
     :param node_name: target minion ID
 
@@ -740,7 +733,7 @@ def node_pillar(node_name, **kwargs):
 
 def inventory(**connection_args):
     '''
-    Get all nodes in inventory and their associated services/roles classification.
+    Get all nodes in inventory and their associated services/roles.
 
     CLI Examples:
 
@@ -772,7 +765,7 @@ def inventory(**connection_args):
 
 def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
     '''
-    List all cluster level overrides
+    List all cluster level soft metadata overrides.
 
     :param file_name: name of the override file, defaults to: overrides.yml
 
@@ -781,7 +774,6 @@ def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
     .. code-block:: bash
 
         salt-call reclass.cluster_meta_list
-
     '''
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     try:
@@ -797,7 +789,7 @@ def cluster_meta_list(file_name="overrides.yml", cluster="", **kwargs):
 
 def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
     '''
-    Delete cluster level override entry
+    Delete cluster level soft metadata override entry.
 
     :param name: name of the override entry (dictionary key)
     :param file_name: name of the override file, defaults to: overrides.yml
@@ -807,7 +799,6 @@ def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
     .. code-block:: bash
 
         salt-call reclass.cluster_meta_delete foo
-
     '''
     ret = {}
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
@@ -830,7 +821,7 @@ def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
 
 def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwargs):
     '''
-    Create cluster level override entry
+    Create cluster level metadata override entry.
 
     :param name: name of the override entry (dictionary key)
     :param value: value of the override entry (dictionary value)
@@ -841,7 +832,6 @@ def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwarg
     .. code-block:: bash
 
         salt-call reclass.cluster_meta_set foo bar
-
     '''
     path = os.path.join(_get_cluster_dir(), cluster, file_name)
     meta = __salt__['reclass.cluster_meta_list'](path, **kwargs)
