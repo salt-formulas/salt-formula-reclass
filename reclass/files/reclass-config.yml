@@ -6,9 +6,16 @@ inventory_base_uri: {{ storage.base_dir }}
 {%- if storage.nodes_uri is defined %}
 nodes_uri: {{ storage.nodes_uri }}
 {%- endif %}
-{%- if storage.class_mappings is defined %}
+{%- if storage.class_mappings|length > 0 %}
 class_mappings:
 {%- for mapping in storage.class_mappings %}
 - {{ mapping.target }} {{ mapping.class }}
 {%- endfor %}
+{%- endif %}
+{% if storage.propagate_pillar_data_to_reclass == True %}
+propagate_pillar_data_to_reclass: {{ storage.propagate_pillar_data_to_reclass }}
+{%- endif %}
+{% if storage.ignore_class_notfound == True %}
+# Below option is not available in upstream reclass, and require fork https://github.com/salt-formulas/reclass
+ignore_class_notfound: {{ storage.ignore_class_notfound }}
 {%- endif %}

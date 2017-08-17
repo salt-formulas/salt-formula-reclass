@@ -8,6 +8,9 @@
         'storage_type': 'yaml_fs',
         'repeat_replace_symbol': '<<count>>',
         'version': '1.4.1',
+        'class_mappings':  {},
+        'ignore_class_notfound': False,
+        'propagate_pillar_data_to_reclass': False
     },
     'RedHat': {
         'base_dir': '/etc/reclass/base',
@@ -18,5 +21,8 @@
         'storage_type': 'yaml_fs',
         'repeat_replace_symbol': '<<count>>',
         'version': '1.4.1',
+        'class_mappings':  {},
+        'ignore_class_notfound': False,
+        'propagate_pillar_data_to_reclass': False
     },
 }, grain='os_family', merge=salt['pillar.get']('reclass:storage')) %}
