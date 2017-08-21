@@ -7,4 +7,3 @@ classify_node_{{ node_name }}:
     - name: {{ node_name }}
     - node_data: {{ node_data }}
     - class_mapping: {{ class_mapping }}
-

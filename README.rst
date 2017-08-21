@@ -51,6 +51,37 @@ Reclass models with dynamic node classification
 .. literalinclude:: tests/pillar/node_classify.sls
    :language: yaml
 
+Classify node after creation and unclassify on node deletion
+
+.. code-block:: yaml
+
+    salt:
+      master:
+        reactor:
+          reclass/minion/classify:
+          - salt://reclass/reactor/node_register.sls
+          reclass/minion/declassify:
+          - salt://reclass/reactor/node_unregister.sls
+
+Event to trigger the node classification
+
+.. code-block:: bash
+
+    salt-call event.send 'reclass/minion/classify' "{'node_master_ip': '$config_host', 'node_ip': '${node_ip}', 'node_domain': '$node_domain', 'node_cluster': '$node_cluster', 'node_hostname': '$node_hostname', 'node_os': '$node_os'}"
+
+.. note::
+
+    You can send any parameters in the event payload, all will be checked
+    against dynamic node classification conditions.
+
+    Both actions will use the minion ID as the node_name to be updated.
+
+Event to trigger the node declassification
+
+.. code-block:: bash
+
+    salt-call event.send 'reclass/minion/declassify'
+
 
 More Information
 ================
