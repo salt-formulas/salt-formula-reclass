@@ -7,7 +7,7 @@ doc:
       name: storage
       param:
         version:
-          value: {{ salt['cmd.run']('reclass --version') }}
+          value: {{ salt['cmd.shell']('reclass --version', python_shell=True) }}
         {%- if storage.data_source.engine == "git" %}
         source_repository:
           value: {{ storage.data_source.address }}
