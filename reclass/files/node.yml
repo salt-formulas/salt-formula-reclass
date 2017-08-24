@@ -13,10 +13,14 @@ parameters:
     {%- endif %}
     {%- endfor %}
     {%- for param_name, param_value in extra_params.iteritems() %}
-    {%- if param_value is not string %}
-    {{ param_name }}: {{ param_value }}
+    {%- if param_value.value is not string %}
+    {{ param_name }}: {{ param_value.value }}
     {%- else %}
-    {{ param_name }}: {{ param_value|replace("u'", "'") }}
+    {%- if param_value.interpolate %}
+    {{ param_name }}: {% raw %}'${_param:{% endraw %}{{ param_value.value|replace("u'", "'")|replace("'", "") }}}'
+    {%- else %}
+    {{ param_name }}: {{ param_value.value|replace("u'", "'") }}
+    {%- endif %}
     {%- endif %}
     {%- endfor %}
   {%- endif %}

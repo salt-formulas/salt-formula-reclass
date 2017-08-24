@@ -12,7 +12,7 @@
 {%- for param_name, param in node.repeat.params.iteritems() %}
 {%- set param_count = (param.get('start', 1) + i)|string %}
 {%- set param_value = param.value|replace(storage.repeat_replace_symbol, param_count.rjust(param.get('digits', 1), '0')) %}
-{%- do extra_params.update({param_name: param_value}) %}
+{%- do extra_params.update({param_name: {'value': param_value, 'interpolate': param.get('interpolate', False)}}) %}
 {%- endfor %}
 
 {%- set node_count = (node.repeat.get('start', 1) + i)|string %}

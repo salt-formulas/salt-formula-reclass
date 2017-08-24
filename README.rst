@@ -41,6 +41,11 @@ Reclass model with multiple node defined
 .. literalinclude:: tests/pillar/generate_multi.sls
    :language: yaml
 
+Reclass model with multiple node defined and interpolation enabled
+
+.. literalinclude:: tests/pillar/generate_multi_interpolate.sls
+   :language: yaml
+
 Reclass storage with simple class mappings
 
 .. literalinclude:: tests/pillar/class_mapping.sls
