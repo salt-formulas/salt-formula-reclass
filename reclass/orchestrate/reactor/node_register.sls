@@ -17,5 +17,5 @@ regenerate_all_nodes:
   - tgt_type: pillar
   - sls: reclass.storage.node
   - queue: True
-  - requires:
+  - require:
     - salt: classify_node_{{ node_name }}
