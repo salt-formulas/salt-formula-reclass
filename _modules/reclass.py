@@ -551,13 +551,40 @@ def node_update(name, classes=None, parameters=None, **connection_args):
 
     .. code-block:: bash
 
-        salt '*' reclass.node_update name=nodename classes="[clas1, class2]"
+        salt '*' reclass.node_update name=nodename classes="[clas1, class2]" parameters="{param: value, another_param: another_value}"
     '''
     node = node_get(name=name)
-    if not node.has_key('Error'):
-        node = node[name.split("/")[1]]
-    else:
+    if node.has_key('Error'):
+        LOG.debug("Error in retrieving node {0}".format(name))
         return {'Error': 'Error in retrieving node'}
+    
+    for name, values in node.items():
+        param = values.get('parameters', {})
+        path = values.get('path')
+        cluster = values.get('cluster')
+        environment = values.get('environment')
+        write_class = values.get('classes', [])
+        
+    if parameters:
+        param.update(parameters)
+    
+    if classes:
+        for classe in classes:
+            if not classe in write_class:
+                write_class.append(classe)
+    
+    node_meta = _get_node_meta(name, cluster, environment, write_class, param)
+    LOG.debug(node_meta)
+    
+    if path == None:
+        file_path = os.path.join(_get_nodes_dir(), name + '.yml')
+    else:
+        file_path = os.path.join(_get_nodes_dir(), path, name + '.yml')
+    
+    with open(file_path, 'w') as node_file:
+        node_file.write(yaml.safe_dump(node_meta, default_flow_style=False))
+    
+    return node_get(name)
 
 
 def _get_node_classes(node_data, class_mapping_fragment):
