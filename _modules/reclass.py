@@ -350,7 +350,7 @@ def node_list(**connection_args):
     for root, sub_folders, files in os.walk(_get_nodes_dir()):
         # skip hidden files and folders in reclass dir
         files = [f for f in files if not f[0] == '.']
-        sub_folders[:] = [d for d in dirs if not d[0] == '.']
+        sub_folders[:] = [d for d in sub_folders if not d[0] == '.']
         for fl in files:
             file_path = os.path.join(root, fl)
             with open(file_path, 'r') as file_handle:
