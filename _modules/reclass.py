@@ -555,7 +555,6 @@ def node_update(name, classes=None, parameters=None, **connection_args):
     '''
     node = node_get(name=name)
     if node.has_key('Error'):
-        LOG.debug("Error in retrieving node {0}".format(name))
         return {'Error': 'Error in retrieving node'}
     
     for name, values in node.items():
