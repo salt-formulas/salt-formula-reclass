@@ -72,6 +72,10 @@ def node_present(name, path=None, cluster="default", environment="prd", classes=
     node = __salt__['reclass.node_get'](name, **kwargs)
 
     if 'Error' in node:
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Node "{0}" would be created'.format(name)
+            return ret
         # Create node
         __salt__['reclass.node_create'](name, path, cluster, environment, classes, parameters, **kwargs)
         ret['comment'] = 'Node "{0}" has been created'.format(name)
@@ -93,9 +97,48 @@ def dynamic_node_present(name, node_data={}, class_mapping={}, **kwargs):
            'result': True,
            'comment': 'Node "{0}" already exists and it is in correct state'.format(name)}
 
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = 'Classification of node "{0}" would be updated'.format(name)
+        return ret
+
     classify_ret = __salt__['reclass.node_classify'](name, node_data, class_mapping, **kwargs)
     ret['comment'] = 'Node "{0}" has been created'.format(name)
     ret['changes']['Node'] = classify_ret
+
+    return ret
+
+
+def node_absent(name, **kwargs):
+    '''
+    Delete node from reclass metadata
+
+    :param name: node minion ID
+
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': 'Node "{0}" already absent'.format(name)}
+
+    # Check if node is present
+    node = __salt__['reclass.node_get'](name, **kwargs)
+    if 'Error' in node:
+        return ret
+
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = 'Node "{0}" would be deleted'.format(name)
+        return ret
+
+    delete_ret = __salt__['reclass.node_delete'](name, **kwargs)
+    if 'Error' in delete_ret:
+        ret['result'] = False
+        ret['comment'] = delete_ret.get('Error', '')
+        return ret
+
+    ret['comment'] = 'Node "{0}" has been deleted'.format(name)
+    ret['changes']['Node'] = delete_ret
 
     return ret
 
@@ -118,17 +161,27 @@ def cluster_meta_present(name, value, file_name="overrides.yml", cluster="", **k
            'comment': 'Cluster metadata entry "{0}" already exists and is in correct state'.format(name)}
     meta_check = __salt__['reclass.cluster_meta_get'](name, path, **kwargs)
     if not meta_check:
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Cluster metadata entry "{0}" would be created'.format(name)
+            return ret
         __salt__['reclass.cluster_meta_set'](name, value, path, **kwargs)
-        ret['comment'] = 'Cluster meta entry {0} has been created'.format(name)
+        ret['comment'] = 'Cluster metadata entry {0} has been created'.format(name)
         ret['changes']['Meta Entry'] = 'Cluster meta entry %s: "%s" has been created' % (name, value)
     elif 'Error' in meta_check:
         ret['comment'] = meta_check.get('Error')
         ret['result'] = False
     elif meta_check[name] != value:
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Cluster metadata entry "{0}" would be updated'.format(name)
+            ret['changes']['Old Meta Entry'] = '{0}: "{1}"'.format(name, meta_check[name])
+            ret['changes']['New Meta Entry'] = '{0}: "{1}"'.format(name, value)
+            return ret
         __salt__['reclass.cluster_meta_set'](name, value, path, **kwargs)
-        ret['comment'] = 'Cluster metadata entry %s has been changed' % (name,)
-        ret['changes']['Old Meta Entry'] = '%s: "%s"' % (name, meta_check[name])
-        ret['changes']['New Meta Entry'] = '%s: "%s"' % (name, value)
+        ret['comment'] = 'Cluster metadata entry {0} has been updated'.format(name)
+        ret['changes']['Old Meta Entry'] = '{0}: "{1}"'.format(name, meta_check[name])
+        ret['changes']['New Meta Entry'] = '{0}: "{1}"'.format(name, value)
     return ret
 
 
@@ -148,6 +201,10 @@ def cluster_meta_absent(name, file_name="overrides.yml", cluster="", **kwargs):
            'comment': 'Cluster metadata entry "{0}" is already absent'.format(name)}
     meta_check = __salt__['reclass.cluster_meta_get'](name, path, **kwargs)
     if meta_check:
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Cluster metadata entry "{0}" would be deleted'.format(name)
+            return ret
         __salt__['reclass.cluster_meta_delete'](name, path, **kwargs)
         ret['comment'] = 'Cluster metadata entry {0} has been deleted'.format(name)
         ret['changes']['Meta Entry'] = 'Cluster metadata entry %s: "%s" has been deleted' % (name, meta_check[name])
