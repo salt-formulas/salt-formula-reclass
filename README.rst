@@ -3,13 +3,40 @@
 Reclass Formula
 ===============
 
-reclass is an “external node classifier” (ENC) as can be used with automation
+reclass is an "external node classifier" (ENC) as can be used with automation
 tools, such as Puppet, Salt, and Ansible. It is also a stand-alone tool for
 merging data sources recursively.
 
 
 Sample Metadata
 ===============
+
+Install sources from [repository, git, pip]
+
+
+.. code-block:: yaml
+
+    salt:
+      source:
+        engine: pkg
+    ...
+      source:
+        engine: git
+        repo: git+https://github.com/salt-formulas/reclass
+        branch: master
+    ...
+      source:
+        engine: pip
+    ...
+
+If reclass is pre-installed, set the engine to None to avoid updates.
+
+.. code-block:: yaml
+
+    salt:
+      source:
+        engine: None
+
 
 Reclass storage with data fetched from git
 

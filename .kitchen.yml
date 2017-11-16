@@ -57,6 +57,16 @@ suites:
       pillars-from-files:
         reclass.sls: tests/pillar/storage_local.sls
 
+  - name: storage_git
+    provisioner:
+      pillars-from-files:
+        reclass.sls: tests/pillar/storage_git.sls
+
+  - name: storage_pip
+    provisioner:
+      pillars-from-files:
+        reclass.sls: tests/pillar/storage_pip.sls
+
   - name: storage_nodes_uri
     provisioner:
       pillars-from-files:
