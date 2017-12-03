@@ -13,7 +13,24 @@
     - clean: True
 {%- endif %}
 
+{%- set storage_by_name = {} %}
+
 {%- for node_name, node in storage.get('node', {}).iteritems() %}
+
+{%- if node.name is defined and node.repeat is not defined %}
+{%- set node_name = node.name %}
+
+{%- if node_name in storage_by_name and storage_by_name[node_name].classes is defined %}
+{%- do node.update({'classes': storage_by_name[node_name].classes + node.get('classes', []) }) %}
+{%- endif %}
+
+{%- endif %}
+
+{%- do salt['defaults.merge'](storage_by_name, {node_name: node}) %}
+
+{%- endfor %}
+
+{%- for node_name, node in storage_by_name.iteritems() %}
 
 {%- if node.repeat is defined %}
 
