@@ -66,6 +66,7 @@ def _deps(ret_classes=True, ret_errors=False):
 
     # read classes
     for class_name, params in classes.items():
+        LOG.debug("Processing:{}".format(params['file']))
         with open(params['file'], 'r') as f:
             # read raw data
             raw = f.read()
@@ -563,33 +564,33 @@ def node_update(name, classes=None, parameters=None, **connection_args):
     node = node_get(name=name)
     if node.has_key('Error'):
         return {'Error': 'Error in retrieving node'}
-    
+
     for name, values in node.items():
         param = values.get('parameters', {})
         path = values.get('path')
         cluster = values.get('cluster')
         environment = values.get('environment')
         write_class = values.get('classes', [])
-        
+
     if parameters:
         param.update(parameters)
-    
+
     if classes:
         for classe in classes:
             if not classe in write_class:
                 write_class.append(classe)
-    
+
     node_meta = _get_node_meta(name, cluster, environment, write_class, param)
     LOG.debug(node_meta)
-    
+
     if path == None:
         file_path = os.path.join(_get_nodes_dir(), name + '.yml')
     else:
         file_path = os.path.join(_get_nodes_dir(), path, name + '.yml')
-    
+
     with open(file_path, 'w') as node_file:
         node_file.write(yaml.safe_dump(node_meta, default_flow_style=False))
-    
+
     return node_get(name)
 
 
