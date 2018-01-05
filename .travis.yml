@@ -17,23 +17,24 @@ install:
   - bundle install
 
 env:
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=class_mapping
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=class_mapping
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate_multi
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate_multi
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate_single
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate_single
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage_local
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage_local
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage_nodes_uri
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage_nodes_uri
+    - PLATFORM=trevorj/salty-whales:trusty SUITE=class-mapping
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=class-mapping
+    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-multi
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-multi
+    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-single
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-single
+    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-local
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-local
+    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-nodes-uri
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-nodes-uri
 
 before_script:
   - set -o pipefail
   - make test | tail
 
 script:
-  - KITCHEN_LOCAL_YAML=.kitchen.travis.yml bundle exec kitchen test -t tests/integration
+  - test ! -e .kitchen.yml || bundle exec kitchen converge ${SUITE} || true
+  - test ! -e .kitchen.yml || bundle exec kitchen verify ${SUITE} -t tests/integration
 
 notifications:
   webhooks:
