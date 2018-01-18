@@ -1,0 +1,7 @@
+parameters:
+  reclass:
+    storage:
+      source:
+        engine: git
+        repo: git+https://github.com/salt-formulas/reclass
+        branch: master

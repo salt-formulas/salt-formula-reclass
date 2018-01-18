@@ -12,8 +12,41 @@ reclass_conf_dir:
   - require:
     - file: reclass_conf_dir
 
+{%- if storage.source.engine == 'pkg' %}
 reclass_packages:
-  pkg.latest:
-  - names: {{ storage.pkgs }}
+  pkg.installed:
+    - names: {{ storage.pkgs }}
 
+{%- elif storage.source.engine == 'git' %}
+storage_install_git_python_pip:
+  pkg.installed:
+    - names:
+      - {{ storage.dependency.pkgs }}
+
+storage_install_reclass_git:
+  pip.installed:
+    - name: reclass
+    - editable: {{ storage.source.repo }}@{{ storage.source.branch }}#egg=reclass
+    - upgrade: True
+    - force_reinstall: True
+    - ignore_installed: True
+    - require:
+      - pkg: storage_install_git_python_pip
+
+{%- elif storage.source.engine == 'pip' %}
+storage_install_python_pip:
+  pkg.installed:
+    - names:
+      - {{ storage.dependency.pkgs }}
+
+storage_install_reclass_pip:
+  pip.installed:
+    - name: reclass
+    - upgrade: True
+    - force_reinstall: True
+    - ignore_installed: True
+    - require:
+      - pkg: storage_install_git_python_pip
+
+{%- endif %}
 {%- endif %}

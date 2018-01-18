@@ -2,7 +2,7 @@ reclass:
   storage:
     enabled: true
     base_dir: /srv/reclass
-    data_source:
+    source:
       engine: git
-      address: git@repo.domain.com:reclass/reclass-project.git
-      revision: master
+      repo: git+https://github.com/salt-formulas/reclass
+      branch: master

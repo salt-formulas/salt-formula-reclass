@@ -3,18 +3,27 @@
         'base_dir': '/etc/reclass/base',
         'storage_type': 'yaml_fs',
         'repeat_replace_symbol': '<<count>>',
-        'class_mappings':  {},
+        'class_mappings': {},
         'ignore_class_notfound': False,
         'propagate_pillar_data_to_reclass': False,
         'data_source': {
             'engine': 'local'
         },
+        'source': {
+            'engine': 'pkg'
+        },
         'version': '1.4.1',
     },
     'Debian': {
         'pkgs': ['reclass', 'python-reclass'],
+        'dependency': {
+           'pkgs': ['git', 'python-pip'],
+        }
     },
     'RedHat': {
         'pkgs': ['reclass', 'python-reclass'],
+        'dependency': {
+           'pkgs': ['git', 'python-pip'],
+        }
     },
 }, grain='os_family', merge=salt['pillar.get']('reclass:storage'), base='default') %}
