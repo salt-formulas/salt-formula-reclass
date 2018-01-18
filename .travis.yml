@@ -18,15 +18,20 @@ install:
 
 env:
     - PLATFORM=trevorj/salty-whales:trusty SUITE=class-mapping
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=class-mapping
     - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-multi
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-multi
     - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-single
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-single
     - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-local
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-local
     - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-nodes-uri
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=class-mapping
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-multi
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-single
+    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-local
     - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-nodes-uri
+    - PLATFORM=trevorj/salty-whales:bionic SUITE=class_mapping
+    - PLATFORM=trevorj/salty-whales:bionic SUITE=generate_multi
+    - PLATFORM=trevorj/salty-whales:bionic SUITE=generate_single
+    - PLATFORM=trevorj/salty-whales:bionic SUITE=storage_local
+    - PLATFORM=trevorj/salty-whales:bionic SUITE=storage_nodes_uri
 
 before_script:
   - set -o pipefail
