@@ -17,21 +17,21 @@ install:
   - bundle install
 
 env:
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=class-mapping
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-multi
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=generate-single
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-local
-    - PLATFORM=trevorj/salty-whales:trusty SUITE=storage-nodes-uri
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=class-mapping
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-multi
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=generate-single
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-local
-    - PLATFORM=trevorj/salty-whales:xenial SUITE=storage-nodes-uri
-    - PLATFORM=trevorj/salty-whales:bionic SUITE=class_mapping
-    - PLATFORM=trevorj/salty-whales:bionic SUITE=generate_multi
-    - PLATFORM=trevorj/salty-whales:bionic SUITE=generate_single
-    - PLATFORM=trevorj/salty-whales:bionic SUITE=storage_local
-    - PLATFORM=trevorj/salty-whales:bionic SUITE=storage_nodes_uri
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2016.3 SUITE=class-mapping
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2016.3 SUITE=generate-multi
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2016.3 SUITE=generate-single
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2016.3 SUITE=storage-local
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2016.3 SUITE=storage-nodes-uri
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2017.7 SUITE=class-mapping
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2017.7 SUITE=generate-multi
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2017.7 SUITE=generate-single
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2017.7 SUITE=storage-local
+    - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-xenial-salt-2017.7 SUITE=storage-nodes-uri
+    # - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-bionic-salt-2017.7 SUITE=class_mapping
+    # - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-bionic-salt-2017.7 SUITE=generate_multi
+    # - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-bionic-salt-2017.7 SUITE=generate_single
+    # - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-bionic-salt-2017.7 SUITE=storage_local
+    # - PLATFORM=epcim/salt-formulas:saltstack-ubuntu-bionic-salt-2017.7 SUITE=storage_nodes_uri
 
 before_script:
   - set -o pipefail
