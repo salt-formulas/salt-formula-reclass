@@ -1,6 +1,18 @@
 {%- from "reclass/map.jinja" import storage with context %}
 {%- if storage.enabled %}
 
+{%- if storage.reclass_nodes_cleanup %}
+{{ storage.base_dir }}/nodes/_generated_cleanup:
+  file.directory:
+    - name: {{ storage.base_dir }}/nodes/_generated
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - makedirs: True
+    - clean: True
+{%- endif %}
+
 {%- for node_name, node in storage.get('node', {}).iteritems() %}
 
 {%- if node.repeat is defined %}
@@ -29,6 +41,10 @@
       node: {{ node|yaml }}
       node_name: "{{ node_name }}"
       extra_params: {{ extra_params }}
+{%- if storage.reclass_nodes_cleanup %}
+  - require_in:
+    - file: {{ storage.base_dir }}/nodes/_generated_cleanup
+{%- endif %}
 
 {%- endfor %}
 
@@ -45,6 +61,10 @@
       node: {{ node|yaml }}
       node_name: "{{ node.get('name', node_name) }}"
       extra_params: {}
+{%- if storage.reclass_nodes_cleanup %}
+  - require_in:
+    - file: {{ storage.base_dir }}/nodes/_generated_cleanup
+{%- endif %}
 
 {%- endif %}
 

@@ -114,6 +114,65 @@ Event to trigger the node declassification
 
     salt-call event.send 'reclass/minion/declassify'
 
+Nodes definitions generator
+===========================
+
+Generate nodes definitions by running:
+
+.. code-block:: bash
+
+    salt-call state.sls reclass.storage -l debug
+
+Remove unnecessary files from nodes/_generated:
+
+.. code-block:: yaml
+
+    reclass:
+      storage:
+        reclass_nodes_cleanup: true
+
+Static node definition:
+
+.. code-block:: yaml
+
+    reclass:
+      storage:
+        enabled: true
+        node:
+          openstack_benchmark_node01:
+            classes:
+            - cluster.example.openstack.benchmark
+            domain: example.com
+            name: bmk01
+            params:
+              linux_system_codename: xenial
+              salt_master_host: 192.168.0.253
+              single_address: 192.168.2.95
+
+Multiple nodes definitions (using generator):
+
+.. code-block:: yaml
+
+    reclass:
+      storage:
+        enabled: true
+        node:
+          openstack_compute_rack01:
+            classes:
+            - cluster.example.openstack.compute
+            domain: example.com
+            name: cmp<<count>>
+            params:
+              linux_system_codename: xenial
+              salt_master_host: 192.168.0.253
+            repeat:
+              start: 1
+              count: 50
+              digits: 3
+              params:
+                single_address:
+                  start: 101
+                  value: 192.168.2.<<count>>
 
 More Information
 ================

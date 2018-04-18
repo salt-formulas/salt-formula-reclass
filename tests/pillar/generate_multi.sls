@@ -1,6 +1,7 @@
 reclass:
   storage:
     enabled: true
+    reclass_nodes_cleanup: true
     repeat_replace_symbol: <<count>>
     node:
       service_node01:
