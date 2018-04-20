@@ -1,5 +1,5 @@
 classes:
-{%- for class in node.classes %}
+{%- for class in node.get('classes', []) %}
 - {{ class }}
 {%- endfor %}
 parameters:
