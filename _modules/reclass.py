@@ -844,7 +844,7 @@ def cluster_meta_delete(name, file_name="overrides.yml", cluster="", **kwargs):
         del metadata[name]
         try:
             with io.open(path, 'w') as file_handle:
-                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+                file_handle.write(unicode(yaml.safe_dump(meta, default_flow_style=False)))
         except Exception as e:
             msg = "Unable to save cluster metadata YAML: %s" % repr(e)
             LOG.error(msg)
@@ -878,7 +878,7 @@ def cluster_meta_set(name, value, file_name="overrides.yml", cluster="", **kwarg
         metadata.update({name: value})
         try:
             with io.open(path, 'w') as file_handle:
-                file_handle.write(unicode(yaml.dump(meta, default_flow_style=False)))
+                file_handle.write(unicode(yaml.safe_dump(meta, default_flow_style=False)))
         except Exception as e:
             msg = "Unable to save cluster metadata YAML %s: %s" % (path, repr(e))
             LOG.error(msg)
