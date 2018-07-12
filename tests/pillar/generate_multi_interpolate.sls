@@ -9,12 +9,14 @@ reclass:
         classes:
         - cluster.deployment.service.role
         repeat:
+          ip_ranges:
+            single_address: '172.16.10.101-172.16.10.254'
           count: 2
           start: 5
           digits: 2
           params:
             single_address:
-              value: ceph_osd_node<<count>>_address
+              value: <<single_address>>
               start: 1
               digits: 2
               interpolate: true

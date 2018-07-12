@@ -40,12 +40,18 @@
 
 {%- for param_name, param in node.repeat.params.iteritems() %}
 {%- set param_count = (param.get('start', 1) + i)|string %}
-{%- set param_value = param.value|replace(storage.repeat_replace_symbol, param_count.rjust(param.get('digits', 1), '0')) %}
-{%- do extra_params.update({param_name: {'value': param_value, 'interpolate': param.get('interpolate', False)}}) %}
+{%- set param_value = {'value': param.value|replace(storage.repeat_count_replace_symbol, param_count.rjust(param.get('digits', 1), '0'))} %}
+{%- if node.repeat.ip_ranges is defined %}
+{%- for range_name, range in node.repeat.ip_ranges.iteritems() %}
+{%- set ip_list = salt['netutils.parse_network_ranges'](range, node.repeat.count) %}
+{%- do param_value.update({'value': param_value['value']|replace('<<' + range_name + '>>', ip_list[i])}) %}
+{%- endfor %}
+{%- endif %}
+{%- do extra_params.update({param_name: {'value': param_value['value'], 'interpolate': param.get('interpolate', False)}}) %}
 {%- endfor %}
 
 {%- set node_count = (node.repeat.get('start', 1) + i)|string %}
-{%- set node_name = node.name|replace(storage.repeat_replace_symbol, node_count.rjust(node.repeat.get('digits', 1), '0')) %}
+{%- set node_name = node.name|replace(storage.repeat_count_replace_symbol, node_count.rjust(node.repeat.get('digits', 1), '0')) %}
 
 {{ storage.base_dir }}/nodes/_generated/{{ node_name }}.{{ node.domain }}.yml:
   file.managed:

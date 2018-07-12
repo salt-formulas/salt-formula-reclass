@@ -174,6 +174,37 @@ Multiple nodes definitions (using generator):
                   start: 101
                   value: 192.168.2.<<count>>
 
+Multiple nodes definitions (using generator) with IP address comprehension. Ranges are named and formatting symbol of the same name is replaced by IP address from corresponding range:
+
+.. code-block:: yaml
+
+    reclass:
+      storage:
+        enabled: true
+        node:
+          openstack_compute_rack01:
+            classes:
+            - cluster.example.openstack.compute
+            domain: example.com
+            name: cmp<<count>>
+            params:
+              linux_system_codename: xenial
+              salt_master_host: 192.168.0.253
+            repeat:
+              ip_ranges:
+                single_address: '172.16.10.97-172.16.10.98'
+                tenant_address: '172.16.20.97-172.16.20.98'
+              start: 1
+              count: 50
+              digits: 3
+              params:
+                single_address:
+                  start: 101
+                  value: 192.168.2.<<single_address>>
+                tenant_address:
+                  start: 101
+                  value: 192.168.2.<<tenant_address>>
+
 More Information
 ================
 
