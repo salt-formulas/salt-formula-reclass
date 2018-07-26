@@ -10,6 +10,6 @@ Vcs-Git: https://github.com/tcpcloud/salt-formula-reclass.git
 
 Package: salt-formula-reclass
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, python-netaddr
 Description: Reclass salt formula
  Configure Reclass hierarchical data storage.
