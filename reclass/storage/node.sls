@@ -34,20 +34,20 @@
         {%- endfor %}
 
         {%- set node_count = (node.repeat.get('start', 1) + i)|string %}
-        {%- set gen_node_name = node.name|replace(storage.repeat_count_replace_symbol, node_count.rjust(node.repeat.get('digits', 1), '0')) %}
-        {%- set gen_node = {} %}
-        {%- do gen_node.update(node) %}
-        {%- do gen_node.update({'__extra_params': extra_params}) %}
-        {%- do salt['defaults.merge'](storage_by_name, {gen_node_name: gen_node}) %}
+        {%- set repeat_node_name = node.name|replace(storage.repeat_count_replace_symbol, node_count.rjust(node.repeat.get('digits', 1), '0')) %}
+        {%- set repeat_node = {} %}
+        {%- do repeat_node.update(node) %}
+        {%- do repeat_node.update({'__extra_params': extra_params}) %}
+        {%- do salt['defaults.merge'](storage_by_name, {repeat_node_name: repeat_node}) %}
       {%- endfor %}
 
     {%- elif node.name is defined and node.repeat is not defined %}
-      {%- set node_name = node.name %}
-      {%- if node_name in storage_by_name and storage_by_name[node_name].classes is defined %}
-        {%- do node.update({'classes': storage_by_name[node_name].classes + node.get('classes', []) }) %}
+      {%- set static_node_name = node.name %}
+      {%- if static_node_name in storage_by_name and storage_by_name[static_node_name].classes is defined %}
+        {%- do node.update({'classes': storage_by_name[static_node_name].classes + node.get('classes', []) }) %}
       {%- endif %}
+      {%- do salt['defaults.merge'](storage_by_name, {static_node_name: node}) %}
     {%- endif %}
-    {%- do salt['defaults.merge'](storage_by_name, {node_name: node}) %}
   {%- endfor %}
 
   {%- for node_name, node in storage_by_name.iteritems() %}
