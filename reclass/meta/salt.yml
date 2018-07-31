@@ -1,0 +1,4 @@
+dependency:
+  engine: pkg
+  pkgs:
+    - python-netaddr
