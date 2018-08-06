@@ -108,6 +108,22 @@ Event to trigger the node classification
 
     Both actions will use the minion ID as the node_name to be updated.
 
+Confirmation of node classification
+
+    Currently salt doesn't allow to get confirmation on minion upon successfull reactor execution on event. However there can be issues
+    with reactor in salt 2017.7 (https://github.com/saltstack/salt/issues/47539) or reactor register state can fail if pillar failed
+    to render, so node registration confirmation maybe needed. In order to enable this functionality add node_confirm_registration parameter to
+    event data with value true:
+
+.. code-block:: bash
+
+    salt-call event.send 'reclass/minion/classify' "{'node_master_ip': '$config_host', 'node_ip': '${node_ip}', 'node_domain': '$node_domain', 'node_cluster': '$node_cluster', 'node_hostname': '$node_hostname', 'node_os': '$node_os', node_confirm_registration: true}"
+
+    Then on minion side execute:
+      salt-call mine.get 'salt:master' ${minion_id}_classified pillar
+
+    If true is returned than registration has passed successfully
+
 Event to trigger the node declassification
 
 .. code-block:: bash

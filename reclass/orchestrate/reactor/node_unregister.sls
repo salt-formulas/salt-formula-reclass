@@ -8,3 +8,15 @@ unregister_node_{{ node_name }}:
   - queue: True
   - pillar:
       node_name: {{ node_name }}
+
+{% if salt['mine.get']('salt:master', node_name + '_classified', 'pillar') %}
+confirm_node_unregistration_{{ node_name }}:
+  salt.function:
+    - tgt: 'salt:master'
+    - tgt_type: pillar
+    - name: mine.delete
+    - arg:
+      - '{{ node_name }}_classified'
+    - require:
+      - salt: unregister_node_{{ node_name }}
+{% endif %}
