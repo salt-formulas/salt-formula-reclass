@@ -18,7 +18,23 @@ class_mappings:
 {%- if storage.propagate_pillar_data_to_reclass == True %}
 propagate_pillar_data_to_reclass: {{ storage.propagate_pillar_data_to_reclass }}
 {%- endif %}
+# Below option are not available in original reclass,
+# use fork with extensions from https://github.com/salt-formulas/reclass
 {%- if storage.ignore_class_notfound == True %}
-# Below option is not available in upstream reclass, and require fork https://github.com/salt-formulas/reclass
 ignore_class_notfound: {{ storage.ignore_class_notfound }}
+{%- endif %}
+{%- if storage.allow_scalar_over_dict is defined %}
+allow_scalar_over_dict: {{ storage.allow_scalar_over_dict }}
+{%- endif %}
+{%- if storage.allow_scalar_over_list is defined %}
+allow_scalar_over_list: {{ storage.allow_scalar_over_list }}
+{%- endif %}
+{%- if storage.allow_list_over_scalar is defined %}
+allow_list_over_scalar: {{ storage.allow_list_over_scalar }}
+{%- endif %}
+{%- if storage.allow_dict_over_scalar is defined %}
+allow_dict_over_scalar: {{ storage.allow_dict_over_scalar }}
+{%- endif %}
+{%- if storage.allow_none_override is defined %}
+allow_none_override: {{ storage.allow_none_override }}
 {%- endif %}
