@@ -18,6 +18,22 @@
 
   {%- for node_name, node in storage.get('node', {}).iteritems() %}
     {%- if node.repeat is defined %}
+
+      {%- if node.repeat.ip_ranges is defined %}
+        {%- set ip_ranges = {} %}
+        {%- for ip_range_name, ip_range in node.repeat.ip_ranges.iteritems() %}
+          {%- set ip_list = salt['netutils.parse_ip_ranges'](ip_range, node.repeat.count) %}
+          {%- do ip_ranges.update({ip_range_name: ip_list}) %}
+        {%- endfor %}
+      {%- endif %}
+      {%- if node.repeat.network_ranges is defined %}
+        {%- set network_ranges = {} %}
+        {%- for network_range_name, network_range in node.repeat.network_ranges.iteritems() %}
+          {%- set ip_list = salt['netutils.parse_network_ranges'](network_range, iterate=True) %}
+          {%- do network_ranges.update({network_range_name: ip_list}) %}
+        {%- endfor %}
+      {%- endif %}
+
       {%- for i in range(node.repeat.count) %}
         {%- set extra_params = {} %}
 
@@ -25,9 +41,13 @@
           {%- set param_count = (param.get('start', 1) + i)|string %}
           {%- set param_value = {'value': param.value|replace(storage.repeat_count_replace_symbol, param_count.rjust(param.get('digits', 1), '0'))} %}
           {%- if node.repeat.ip_ranges is defined %}
-            {%- for range_name, range in node.repeat.ip_ranges.iteritems() %}
-              {%- set ip_list = salt['netutils.parse_network_ranges'](range, node.repeat.count) %}
-              {%- do param_value.update({'value': param_value['value']|replace('<<' + range_name + '>>', ip_list[i])}) %}
+            {%- for ip_range_name, ip_range in node.repeat.ip_ranges.iteritems() %}
+              {%- do param_value.update({'value': param_value['value']|replace('<<' + ip_range_name + '>>', ip_ranges[ip_range_name][i])}) %}
+            {%- endfor %}
+          {%- endif %}
+          {%- if node.repeat.network_ranges is defined %}
+            {%- for network_range_name, network_range in node.repeat.network_ranges.iteritems() %}
+              {% do param_value.update({'value': param_value['value']|replace('<<' + network_range_name + '>>', network_ranges[network_range_name][i])}) %}
             {%- endfor %}
           {%- endif %}
           {%- do extra_params.update({param_name: {'value': param_value['value'], 'interpolate': param.get('interpolate', False)}}) %}

@@ -224,6 +224,8 @@ address from the corresponding range:
               ip_ranges:
                 single_address: '172.16.10.97-172.16.10.98'
                 tenant_address: '172.16.20.97-172.16.20.98'
+              network_ranges:
+                sriov_address: '10.10.0.1/24-10.10.50.1/24'
               start: 1
               count: 50
               digits: 3

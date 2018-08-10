@@ -11,15 +11,16 @@ reclass:
         repeat:
           ip_ranges:
             single_address: '172.16.10.101-172.16.10.254'
+          network_ranges:
+            sriov_address: '172.16.10.1/24-172.16.100.1/24'
           count: 2
           start: 5
           digits: 2
           params:
             single_address:
               value: <<single_address>>
-              start: 1
-              digits: 2
-              interpolate: true
+            sriov_address:
+              value: <<sriov_address>>
         params:
           salt_master_host: <<salt-master-ip>>
           linux_system_codename: trusty
