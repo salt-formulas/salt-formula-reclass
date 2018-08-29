@@ -41,7 +41,7 @@ def _deps(ret_classes=True, ret_errors=False):
     '''
     Returns classes if ret_classes=True, else returns soft_params if ret_classes=False
     '''
-    defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
+    defaults = find_and_read_configfile()
     path = defaults.get('inventory_base_uri')
     classes = {}
     soft_params = {}
@@ -120,12 +120,14 @@ def _deps(ret_classes=True, ret_errors=False):
 
 
 def _get_nodes_dir():
-    defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
-    return defaults.get('nodes_uri') or os.path.join(defaults.get('inventory_base_uri'), 'nodes')
+    defaults = find_and_read_configfile()
+    return defaults.get('nodes_uri') or \
+        os.path.join(defaults.get('inventory_base_uri'), 'nodes')
+
 
 def _get_classes_dir():
-    defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
-    return defaults.get('classes_uri') or os.path.join(defaults.get('inventory_base_uri'), 'classes')
+    defaults = find_and_read_configfile()
+    return os.path.join(defaults.get('inventory_base_uri'), 'classes')
 
 
 def _get_cluster_dir():
@@ -722,7 +724,7 @@ def validate_pillar(node_name=None, **kwargs):
                 ret.update(validate_pillar(node_name))
         return ret
     else:
-        defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
+        defaults = find_and_read_configfile()
         meta = ''
         error = None
         try:
@@ -756,7 +758,7 @@ def node_pillar(node_name, **kwargs):
         salt-call reclass.node_pillar minion_id
 
     '''
-    defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
+    defaults = find_and_read_configfile()
     pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
     output = {node_name: pillar}
 
@@ -773,7 +775,7 @@ def inventory(**connection_args):
 
         salt '*' reclass.inventory
     '''
-    defaults = __salt__['config.get']('reclass', None) or find_and_read_configfile()
+    defaults = find_and_read_configfile()
     storage = get_storage(defaults['storage_type'], _get_nodes_dir(), _get_classes_dir())
     reclass = Core(storage, None)
     nodes = reclass.inventory()["nodes"]
