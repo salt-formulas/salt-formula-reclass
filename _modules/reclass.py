@@ -41,7 +41,7 @@ def _deps(ret_classes=True, ret_errors=False):
     '''
     Returns classes if ret_classes=True, else returns soft_params if ret_classes=False
     '''
-    defaults = find_and_read_configfile()
+    defaults = _get_defaults()
     path = defaults.get('inventory_base_uri')
     classes = {}
     soft_params = {}
@@ -119,15 +119,36 @@ def _deps(ret_classes=True, ret_errors=False):
     return soft_params
 
 
-def _get_nodes_dir():
-    defaults = find_and_read_configfile()
-    return defaults.get('nodes_uri') or \
-        os.path.join(defaults.get('inventory_base_uri'), 'nodes')
+def _get_defaults():
 
+    # config.get works as expected since 2018.3.x, not expected to be run (salt-run) on salt master
+    # config.get tries to read minion conf, if "key" is not found
+    #   it will return data from grains, pillar, master config (conditions apply)
+
+    # Use use with salt 2018.8 because of:
+    # - https://github.com/saltstack/salt/pull/43513/files
+    # - https://github.com/saltstack/salt/issues/43479
+    if __grains__.saltversion >= [2018,3]:
+        config = __salt__.saltutil.runner('config.get', kwarg={'key': 'reclass', 'default': None} ) or \
+                 __salt__.pillar.get('salt:master:pillar:reclass', None)
+
+        # fall-back for backward compatibility
+        if not ((config.has_key('classes_uri') or config.has_key('inventory_base_uri')) and \
+                (config.has_key('nodes_uri')   or config.has_key('inventory_base_uri'))):
+            config = find_and_read_configfile()
+    else:
+        # fall-back for backward compatibility
+        config = find_and_read_configfile()
+
+    return config
+
+def _get_nodes_dir():
+    defaults = _get_defaults()
+    return defaults.get('nodes_uri') or os.path.join(defaults.get('inventory_base_uri'), 'nodes')
 
 def _get_classes_dir():
-    defaults = find_and_read_configfile()
-    return os.path.join(defaults.get('inventory_base_uri'), 'classes')
+    defaults = _get_defaults()
+    return defaults.get('classes_uri') or os.path.join(defaults.get('inventory_base_uri'), 'classes')
 
 
 def _get_cluster_dir():
@@ -724,7 +745,7 @@ def validate_pillar(node_name=None, **kwargs):
                 ret.update(validate_pillar(node_name))
         return ret
     else:
-        defaults = find_and_read_configfile()
+        defaults = _get_defaults()
         meta = ''
         error = None
         try:
@@ -758,7 +779,7 @@ def node_pillar(node_name, **kwargs):
         salt-call reclass.node_pillar minion_id
 
     '''
-    defaults = find_and_read_configfile()
+    defaults = _get_defaults()
     pillar = ext_pillar(node_name, {}, defaults['storage_type'], defaults['inventory_base_uri'])
     output = {node_name: pillar}
 
@@ -775,7 +796,7 @@ def inventory(**connection_args):
 
         salt '*' reclass.inventory
     '''
-    defaults = find_and_read_configfile()
+    defaults = _get_defaults()
     storage = get_storage(defaults['storage_type'], _get_nodes_dir(), _get_classes_dir())
     reclass = Core(storage, None)
     nodes = reclass.inventory()["nodes"]
